@@ -1,0 +1,23 @@
+{
+  "name": "poker-hand-trainer",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "howler": "^2.2.4"
+  },
+  "devDependencies": {
+    "vite": "^5.0.12"
+  },
+  "description": "A beautiful and engaging poker hand training game with modern graphics and animations. Test and improve your poker hand recognition skills in various game modes.",
+  "main": "vite.config.js",
+  "keywords": ["poker", "game", "training", "css", "animations"],
+  "author": "",
+  "license": "MIT"
+}
