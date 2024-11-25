@@ -91,4 +91,30 @@ export class Card {
     toString() {
         return `${this.rank}${this.suit[0].toUpperCase()}`;
     }
+
+    animateCorrect() {
+        if (this.element) {
+            this.element.classList.add('correct');
+            setTimeout(() => this.element.classList.remove('correct'), 600);
+        }
+    }
+
+    animateIncorrect() {
+        if (this.element) {
+            this.element.classList.add('incorrect');
+            setTimeout(() => this.element.classList.remove('incorrect'), 600);
+        }
+    }
+
+    static fromCode(code) {
+        const rank = code.slice(0, -1);
+        const suitMap = {
+            'H': 'hearts',
+            'D': 'diamonds',
+            'C': 'clubs',
+            'S': 'spades'
+        };
+        const suit = suitMap[code.slice(-1)];
+        return new Card(rank, suit);
+    }
 }

@@ -1,0 +1,104 @@
+.tutorial-intro {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #fff;
+}
+
+.tutorial-intro p {
+    margin: 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.tutorial-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.tutorial-content h2 {
+    color: #3498DB;
+    margin-bottom: 1rem;
+    font-size: 2rem;
+}
+
+.tutorial-content p {
+    color: #fff;
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+.card-container {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 2rem 0;
+    min-height: 174px;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.controls button {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    background: #3498DB;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.controls button:hover:not(:disabled) {
+    background: #2980B9;
+}
+
+.controls button:disabled {
+    background: #95A5A6;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 2rem 0 0 0;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    background: #2ECC71;
+    transition: width 0.3s ease;
+    border-radius: 2px;
+    width: 0;
+}
+
+/* Card animations */
+@keyframes correctAnimation {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); background-color: #2ecc71; }
+}
+
+@keyframes incorrectAnimation {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); background-color: #e74c3c; }
+}
+
+.card.correct {
+    animation: correctAnimation 0.6s ease;
+}
+
+.card.incorrect {
+    animation: incorrectAnimation 0.6s ease;
+}
