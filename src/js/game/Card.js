@@ -1,9 +1,141 @@
 export class Card {
-    constructor(rank, suit) {
+    static instances = new Set();
+    static DEBUG = true;
+
+    constructor(rank, suit, faceUp = false) {
+        this.id = Math.random().toString(36).substr(2, 9);
         this.rank = rank;
         this.suit = suit;
         this.element = null;
-        this.faceUp = false; // Start face down
+        this._faceUp = faceUp;
+        this.createdAt = new Date();
+        this.flips = [];
+        Card.instances.add(this);
+        this.debug(`Created card [${this.id}]: ${rank}${this.getSuitSymbol()}, face ${this._faceUp ? 'up' : 'down'}`);
+        this.debug(`Card state: ${JSON.stringify(this.getState())}`);
+    }
+
+    debug(message) {
+        if (Card.DEBUG) {
+            console.log(`[Card ${this.id}] ${message}`);
+        }
+    }
+
+    getState() {
+        const elementInDOM = this.element ? !!this.element.parentNode : false;
+        const state = {
+            id: this.id,
+            rank: this.rank,
+            suit: this.suit,
+            faceUp: this._faceUp,
+            hasElement: !!this.element,
+            elementClasses: this.element ? Array.from(this.element.classList) : [],
+            flips: this.flips,
+            createdAt: this.createdAt,
+            elementInDOM: elementInDOM,
+            parentNodeType: elementInDOM ? this.element.parentNode.nodeName : null
+        };
+        return state;
+    }
+
+    get faceUp() {
+        return this._faceUp;
+    }
+
+    set faceUp(value) {
+        this.debug(`Attempting to set faceUp to ${value}`);
+        if (this._faceUp === value) {
+            this.debug(`Card is already face ${value ? 'up' : 'down'}, ignoring`);
+            return;
+        }
+        this.setFaceUp(value);
+    }
+
+    createElement() {
+        this.debug(`Creating element, current state: ${JSON.stringify(this.getState())}`);
+        
+        if (this.element) {
+            this.debug(`Element already exists, returning existing element`);
+            return this.element;
+        }
+
+        this.element = document.createElement('div');
+        this.element.className = 'card';
+        this.element.dataset.cardId = this.id;
+        
+        const inner = document.createElement('div');
+        inner.className = 'card-inner';
+        
+        const front = document.createElement('div');
+        front.className = 'card-front';
+        front.innerHTML = `
+            <div class="card-value ${this.getSuitColor()}">
+                <span class="rank">${this.rank}</span>
+                <span class="suit">${this.getSuitSymbol()}</span>
+            </div>
+        `;
+        
+        const back = document.createElement('div');
+        back.className = 'card-back';
+        
+        inner.appendChild(front);
+        inner.appendChild(back);
+        this.element.appendChild(inner);
+
+        // Add flipped class if card should be face up
+        if (this._faceUp) {
+            this.debug(`Card is face up, adding flipped class`);
+            this.element.classList.add('flipped');
+        }
+
+        this.debug(`Element created with classes: ${Array.from(this.element.classList).join(',')}`);
+        return this.element;
+    }
+
+    attachToDOM(parentElement) {
+        if (!this.element) {
+            this.createElement();
+        }
+        if (parentElement && !this.element.parentNode) {
+            parentElement.appendChild(this.element);
+            this.debug(`Attached card element to DOM. New state: ${JSON.stringify(this.getState())}`);
+        }
+    }
+
+    setFaceUp(faceUp) {
+        this.debug(`Setting face up to ${faceUp}, current state: ${JSON.stringify(this.getState())}`);
+        
+        if (this._faceUp === faceUp) {
+            this.debug('Card is already in desired face up state, no change needed');
+            return;
+        }
+
+        this._faceUp = faceUp;
+        
+        if (this.element) {
+            try {
+                requestAnimationFrame(() => {
+                    if (this.element) {  // Double-check element still exists
+                        if (faceUp) {
+                            this.element.classList.add('flipped');
+                        } else {
+                            this.element.classList.remove('flipped');
+                        }
+                        this.debug(`Updated element classes: ${Array.from(this.element.classList).join(',')}`);
+                    }
+                });
+            } catch (error) {
+                this.debug(`Error updating face up state: ${error.message}`);
+                console.error('Error in setFaceUp:', error);
+            }
+        }
+    }
+
+    flip() {
+        this.debug(`Flip called`);
+        this.debug(`Before flip: ${JSON.stringify(this.getState())}`);
+        this.setFaceUp(!this._faceUp);
+        this.debug(`After flip: ${JSON.stringify(this.getState())}`);
     }
 
     getSuitSymbol() {
@@ -17,84 +149,12 @@ export class Card {
     }
 
     getSuitColor() {
-        return ['hearts', 'diamonds'].includes(this.suit) ? '#e74c3c' : '#2c3e50';
-    }
-
-    createElement() {
-        if (!this.element) {
-            console.log(`Creating element for ${this.rank}${this.getSuitSymbol()}`);
-            // Create main card container
-            this.element = document.createElement('div');
-            this.element.className = 'card';
-            
-            // Create front face with card info
-            const front = document.createElement('div');
-            front.className = 'card-face front';
-            
-            // Create front face content
-            const frontContent = document.createElement('div');
-            frontContent.className = 'card-front-content';
-            
-            const topLeft = document.createElement('div');
-            topLeft.className = 'card-corner top-left';
-            topLeft.innerHTML = `
-                <div class="rank">${this.rank}</div>
-                <div class="suit">${this.getSuitSymbol()}</div>
-            `;
-
-            const center = document.createElement('div');
-            center.className = 'card-center';
-            center.innerHTML = `<div class="suit">${this.getSuitSymbol()}</div>`;
-
-            const bottomRight = document.createElement('div');
-            bottomRight.className = 'card-corner bottom-right';
-            bottomRight.innerHTML = `
-                <div class="rank">${this.rank}</div>
-                <div class="suit">${this.getSuitSymbol()}</div>
-            `;
-
-            frontContent.appendChild(topLeft);
-            frontContent.appendChild(center);
-            frontContent.appendChild(bottomRight);
-            front.appendChild(frontContent);
-            
-            // Create back face with only star
-            const back = document.createElement('div');
-            back.className = 'card-face back';
-            const backDesign = document.createElement('div');
-            backDesign.className = 'card-back-design';
-            back.appendChild(backDesign);
-            
-            // Add faces to card
-            this.element.appendChild(front);
-            this.element.appendChild(back);
-
-            // Add data attributes for styling
-            this.element.dataset.rank = this.rank;
-            this.element.dataset.suit = this.suit;
-            
-            console.log(`Created card element for ${this.rank}${this.getSuitSymbol()}`);
-        }
-        return this.element;
-    }
-
-    flip() {
-        console.log(`Flipping card ${this.rank}${this.getSuitSymbol()}`);
-        this.faceUp = !this.faceUp;
-        if (this.element) {
-            this.element.classList.toggle('flipped', this.faceUp);
-            console.log(`Card ${this.rank}${this.getSuitSymbol()} flipped to ${this.faceUp ? 'face up' : 'face down'}`);
-        }
-    }
-
-    setFaceUp(faceUp) {
-        if (this.faceUp !== faceUp) {
-            this.flip();
-        }
+        return ['hearts', 'diamonds'].includes(this.suit) ? 'red' : 'black';
     }
 
     toString() {
-        return `${this.rank}${this.suit[0].toUpperCase()}`;
+        const symbol = this.getSuitSymbol();
+        return `${this.rank}${symbol}`;
     }
 
     animateCorrect() {
@@ -111,7 +171,46 @@ export class Card {
         }
     }
 
-    static fromCode(code) {
+    cleanup() {
+        this.debug(`Cleaning up card, current state: ${JSON.stringify(this.getState())}`);
+        
+        if (this.element) {
+            try {
+                // Remove all event listeners
+                const clone = this.element.cloneNode(true);
+                if (this.element.parentNode) {
+                    this.element.parentNode.replaceChild(clone, this.element);
+                }
+                
+                // Remove from DOM if still attached
+                if (clone.parentNode) {
+                    clone.parentNode.removeChild(clone);
+                }
+                
+                this.element = null;
+                this.debug(`Card cleaned up successfully, new state: ${JSON.stringify(this.getState())}`);
+            } catch (error) {
+                this.debug(`Error during cleanup: ${error.message}`);
+                console.error('Error in cleanup:', error);
+                // Attempt basic cleanup as fallback
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                }
+                this.element = null;
+            }
+        } else {
+            this.debug('No element to clean up');
+        }
+    }
+
+    static cleanup() {
+        console.log(`[Card] Starting cleanup of ${Card.instances.size} instances`);
+        // Create a new array to avoid modifying Set while iterating
+        [...Card.instances].forEach(card => card.cleanup());
+        console.log(`[Card] Cleaned up all instances`);
+    }
+
+    static fromCode(code, faceUp = false) {
         const rank = code.slice(0, -1);
         const suitMap = {
             'H': 'hearts',
@@ -120,6 +219,13 @@ export class Card {
             'S': 'spades'
         };
         const suit = suitMap[code.slice(-1)];
-        return new Card(rank, suit);
+        if (!suit) {
+            console.error(`[Card] Invalid suit code: ${code.slice(-1)}`);
+            return null;
+        }
+        
+        const card = new Card(rank, suit, faceUp);
+        card.debug(`Created card from code: ${code}, face ${faceUp ? 'up' : 'down'}`);
+        return card;
     }
 }

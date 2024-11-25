@@ -70,7 +70,23 @@
                 <p>Congratulations! You've learned all the poker hands.</p>
                 <p>Ready to test your knowledge?</p>
                 <div class="controls">
+                    <button id="start-playing" class="mode-button">Start Playing</button>
                     <button id="return-to-menu" class="mode-button">Return to Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-over" class="overlay" style="display: none;">
+            <div class="game-over-content">
+                <h2>Game Over!</h2>
+                <div class="final-stats">
+                    <p>Final Score: <span id="final-score">0%</span></p>
+                    <p>Correct Answers: <span id="correct-answers">0</span></p>
+                    <p>Incorrect Answers: <span id="incorrect-answers">0</span></p>
+                </div>
+                <div class="controls">
+                    <button id="play-again" class="mode-button">Play Again</button>
+                    <button id="game-over-menu" class="mode-button">Return to Menu</button>
                 </div>
             </div>
         </div>

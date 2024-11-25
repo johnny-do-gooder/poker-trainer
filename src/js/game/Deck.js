@@ -31,10 +31,17 @@ export class Deck {
     }
 
     reset() {
-        // Collect all cards and shuffle
-        this.cards = [];
+        // Clean up existing cards
+        this.cleanup();
+        // Create new deck
         this.createDeck();
         this.shuffle();
+    }
+
+    cleanup() {
+        // Clean up all cards in the deck
+        this.cards.forEach(card => card.cleanup());
+        this.cards = [];
     }
 
     // Helper method to generate specific hands for training

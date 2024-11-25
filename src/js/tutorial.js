@@ -2,6 +2,15 @@ import { Card } from './game/Card';
 
 export class Tutorial {
     constructor() {
+        console.log('[Tutorial] Starting tutorial initialization');
+        // Clean up any existing card container content
+        const existingContainer = document.querySelector('.card-container');
+        if (existingContainer) {
+            while (existingContainer.firstChild) {
+                existingContainer.removeChild(existingContainer.firstChild);
+            }
+        }
+        
         // Initialize all elements
         this.initializeElements();
         
@@ -17,13 +26,13 @@ export class Tutorial {
             isTransitioning: false
         };
         
-        console.log('Tutorial initialized');
+        console.log('[Tutorial] Tutorial initialized');
     }
 
     start() {
         // Show initial hand
         this.currentIndex = 0;
-        this.showHand();
+        this.showHand(this.currentIndex);
         this.updateNavigationButtons();
     }
 
@@ -56,153 +65,98 @@ export class Tutorial {
     }
 
     initializeHands() {
-        const handTypes = [
+        // Store the hand types
+        this.tutorialHands = [
             {
                 name: "Royal Flush",
                 description: "The highest possible hand in poker. A straight flush from 10 to Ace, all in the same suit.",
-                variations: [
-                    ["AS", "KS", "QS", "JS", "TS"],  // Spades
-                    ["AH", "KH", "QH", "JH", "TH"],  // Hearts
-                    ["AD", "KD", "QD", "JD", "TD"]   // Diamonds
-                ]
+                cards: ["AS", "KS", "QS", "JS", "TS"]  // Using Spades for consistency
             },
             {
                 name: "Straight Flush",
                 description: "Five consecutive cards of the same suit.",
-                variations: [
-                    ["9H", "8H", "7H", "6H", "5H"],  // 9-5 Hearts
-                    ["8D", "7D", "6D", "5D", "4D"],  // 8-4 Diamonds
-                    ["7S", "6S", "5S", "4S", "3S"]   // 7-3 Spades
-                ]
+                cards: ["9H", "8H", "7H", "6H", "5H"]  // 9-5 Hearts
             },
             {
                 name: "Four of a Kind",
                 description: "Four cards of the same rank.",
-                variations: [
-                    ["KH", "KD", "KC", "KS", "2C"],  // Kings
-                    ["AH", "AD", "AC", "AS", "3D"],  // Aces
-                    ["QH", "QD", "QC", "QS", "4H"]   // Queens
-                ]
+                cards: ["KH", "KD", "KC", "KS", "2C"]  // Kings
             },
             {
                 name: "Full House",
                 description: "Three cards of one rank and two cards of another rank.",
-                variations: [
-                    ["JH", "JD", "JC", "9S", "9C"],  // Jacks over Nines
-                    ["TH", "TD", "TC", "KS", "KD"],  // Tens over Kings
-                    ["8H", "8D", "8C", "AS", "AD"]   // Eights over Aces
-                ]
+                cards: ["JH", "JD", "JC", "9S", "9C"]  // Jacks over Nines
             },
             {
                 name: "Flush",
                 description: "Any five cards of the same suit.",
-                variations: [
-                    ["AH", "JH", "8H", "6H", "2H"],  // Ace-high Hearts
-                    ["KS", "QS", "9S", "7S", "3S"],  // King-high Spades
-                    ["QD", "JD", "8D", "5D", "2D"]   // Queen-high Diamonds
-                ]
+                cards: ["AH", "JH", "8H", "6H", "2H"]  // Ace-high Hearts
             },
             {
                 name: "Straight",
                 description: "Five consecutive cards of different suits.",
-                variations: [
-                    ["9S", "8H", "7D", "6C", "5H"],  // 9-high
-                    ["8D", "7S", "6H", "5D", "4C"],  // 8-high
-                    ["JH", "TS", "9D", "8C", "7H"]   // Jack-high
-                ]
+                cards: ["9S", "8H", "7D", "6C", "5H"]  // 9-high
             },
             {
                 name: "Three of a Kind",
                 description: "Three cards of the same rank.",
-                variations: [
-                    ["7H", "7D", "7C", "KS", "2C"],  // Three Sevens
-                    ["TH", "TD", "TC", "AS", "4D"],  // Three Tens
-                    ["5H", "5D", "5C", "KS", "JD"]   // Three Fives
-                ]
+                cards: ["7H", "7D", "7C", "KS", "2C"]  // Three Sevens
             },
             {
                 name: "Two Pair",
                 description: "Two different pairs of cards.",
-                variations: [
-                    ["AH", "AD", "KS", "KC", "2C"],  // Aces and Kings
-                    ["QH", "QD", "JS", "JC", "3H"],  // Queens and Jacks
-                    ["TH", "TD", "9S", "9C", "4D"]   // Tens and Nines
-                ]
+                cards: ["AH", "AD", "KS", "KC", "2C"]  // Aces and Kings
             },
             {
                 name: "One Pair",
                 description: "Two cards of the same rank.",
-                variations: [
-                    ["QH", "QD", "AS", "8C", "3H"],  // Pair of Queens
-                    ["KH", "KD", "JS", "7C", "2H"],  // Pair of Kings
-                    ["JH", "JD", "AS", "9C", "4H"]   // Pair of Jacks
-                ]
+                cards: ["QH", "QD", "AS", "8C", "3H"]  // Pair of Queens
             },
             {
                 name: "High Card",
                 description: "When you don't have any of the above hands, your highest card plays.",
-                variations: [
-                    ["AH", "JD", "8S", "6C", "2H"],  // Ace-high
-                    ["KH", "QD", "9S", "7C", "3H"],  // King-high
-                    ["QH", "JD", "8S", "6C", "4H"]   // Queen-high
-                ]
+                cards: ["AH", "JD", "8S", "6C", "2H"]  // Ace-high
             }
         ];
-
-        // Expand the hand types into individual hands
-        this.tutorialHands = handTypes.flatMap(handType => 
-            handType.variations.map(cards => ({
-                name: handType.name,
-                description: handType.description,
-                cards: cards
-            }))
-        );
+        
+        console.log('[Tutorial] Initialized hands:', this.tutorialHands.length);
     }
 
     setupEventListeners() {
+        // Previous button click handler
         this.prevButton.addEventListener('click', () => {
-            if (this.gameState.isTransitioning) return;
             console.log('Previous button clicked');
             if (this.currentIndex > 0) {
-                this.gameState.isTransitioning = true;
                 this.currentIndex--;
-                this.showHand();
-                this.gameState.isTransitioning = false;
+                this.showHand(this.currentIndex);
+                this.updateNavigationButtons();
             }
-            this.updateNavigationButtons();
         });
-        
+
+        // Next button click handler
         this.nextButton.addEventListener('click', () => {
-            if (this.gameState.isTransitioning) return;
             console.log('Next button clicked');
             if (this.currentIndex < this.tutorialHands.length - 1) {
-                this.gameState.isTransitioning = true;
-                // Animate current cards as correct
-                this.cards.forEach(card => card.animateCorrect());
-                setTimeout(() => {
-                    this.currentIndex++;
-                    this.showHand();
-                    this.gameState.isTransitioning = false;
-                }, 600);
+                this.currentIndex++;
+                this.showHand(this.currentIndex);
+                this.updateNavigationButtons();
             } else {
-                // Show tutorial completion screen
+                // Tutorial complete
                 document.getElementById('tutorial-overlay').style.display = 'none';
                 document.getElementById('tutorial-complete').style.display = 'flex';
-                
-                // Handle return to menu
-                const returnButton = document.getElementById('return-to-menu');
-                if (returnButton && !returnButton.hasClickHandler) {
-                    returnButton.hasClickHandler = true;
-                    returnButton.addEventListener('click', () => {
-                        document.getElementById('tutorial-complete').style.display = 'none';
-                        document.getElementById('menu').classList.remove('hidden');
-                        // Clean up tutorial
-                        this.cleanup();
-                    });
-                }
             }
-            this.updateNavigationButtons();
         });
+
+        // Return to menu handler
+        const returnToMenuButton = document.getElementById('return-to-menu');
+        if (returnToMenuButton) {
+            returnToMenuButton.addEventListener('click', () => {
+                document.getElementById('tutorial-complete').style.display = 'none';
+                document.getElementById('menu').style.display = 'flex';
+                document.getElementById('menu').classList.remove('hidden');
+                this.cleanup();
+            });
+        }
 
         // Add click handlers for cards
         this.cardContainer.addEventListener('click', (e) => {
@@ -222,16 +176,16 @@ export class Tutorial {
         this.nextButton.textContent = this.currentIndex === this.tutorialHands.length - 1 ? 'Finish' : 'Next';
     }
 
-    showHand() {
-        console.log('Showing hand:', this.currentIndex);
-        const currentHand = this.tutorialHands[this.currentIndex];
-        
-        if (!currentHand) {
-            console.error('No hand found at index:', this.currentIndex);
+    showHand(index) {
+        if (index < 0 || index >= this.tutorialHands.length) {
+            console.error('[Tutorial] Invalid hand index:', index);
             return;
         }
 
-        // Update text content
+        this.currentIndex = index;
+        const currentHand = this.tutorialHands[index];
+        
+        // Update hand name and description
         this.handName.textContent = currentHand.name;
         this.handDescription.textContent = currentHand.description;
         
@@ -239,43 +193,62 @@ export class Tutorial {
         const progress = ((this.currentIndex + 1) / this.tutorialHands.length) * 100;
         this.progress.style.width = `${progress}%`;
         
-        // Clear existing cards
-        this.cardContainer.innerHTML = '';
-        this.cards = [];
+        // Clean up existing cards
+        if (this.cards) {
+            console.log('[Tutorial] Cleaning up existing cards');
+            this.cards.forEach(card => card.cleanup());
+            this.cards = [];
+        }
         
-        // Create and display new cards
-        currentHand.cards.forEach(cardCode => {
-            const card = Card.fromCode(cardCode);
-            const cardElement = card.createElement();
-            this.cardContainer.appendChild(cardElement);
-            card.setFaceUp(true); // Make sure cards are face up in tutorial
-            this.cards.push(card);
-        });
-        
-        this.updateNavigationButtons();
+        // Clear card container
+        if (this.cardContainer) {
+            console.log('[Tutorial] Clearing card container');
+            this.cardContainer.innerHTML = '';
+            
+            // Create and display new cards
+            if (currentHand.cards) {
+                console.log(`[Tutorial] Creating cards for hand: ${currentHand.name} (${currentHand.cards.join(', ')})`);
+                this.cards = currentHand.cards.map((cardCode, index) => {
+                    console.log(`[Tutorial] Creating card ${index + 1}/${currentHand.cards.length}: ${cardCode}`);
+                    const card = Card.fromCode(cardCode, true);
+                    card.attachToDOM(this.cardContainer);
+                    return card;
+                });
+                console.log(`[Tutorial] Created ${this.cards.length} cards for ${currentHand.name}`);
+            }
+        }
     }
 
     cleanup() {
-        // Remove all cards
-        while (this.cardContainer.firstChild) {
-            this.cardContainer.removeChild(this.cardContainer.firstChild);
-        }
+        console.log('[Tutorial] Starting cleanup');
         
+        // Clean up cards
+        if (this.cards) {
+            console.log('[Tutorial] Cleaning up cards');
+            this.cards.forEach(card => card.cleanup());
+            this.cards = [];
+        }
+
+        // Clean up any remaining card instances
+        console.log('[Tutorial] Cleaning up all remaining card instances');
+        Card.cleanup();
+
+        // Clean up DOM elements
+        if (this.cardContainer) {
+            console.log('[Tutorial] Clearing card container');
+            while (this.cardContainer.firstChild) {
+                this.cardContainer.removeChild(this.cardContainer.firstChild);
+            }
+        }
+
         // Reset state
         this.currentIndex = 0;
-        this.cards = [];
         this.gameState = {
             isAnimating: false,
             isTransitioning: false
         };
-        
-        // Remove event listeners
-        this.prevButton.replaceWith(this.prevButton.cloneNode(true));
-        this.nextButton.replaceWith(this.nextButton.cloneNode(true));
-        this.cardContainer.replaceWith(this.cardContainer.cloneNode(true));
-        
-        // Re-initialize elements after cleanup
-        this.initializeElements();
+
+        console.log('[Tutorial] Cleanup complete');
     }
 }
 
