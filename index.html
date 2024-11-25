@@ -11,24 +11,28 @@
     <div id="game">
         <div id="header">
             <div id="stats">
-                <div class="stat">Score: <span id="score">0</span></div>
+                <div class="stat">Correct: <span id="correct">0</span></div>
+                <div class="stat">Incorrect: <span id="incorrect">0</span></div>
+                <div class="stat">Score: <span id="score">0%</span></div>
                 <div class="stat">Time: <span id="timer">0:00</span></div>
+                <div class="stat">Total Score: <span id="total-score">0</span></div>
+                <div class="stat">Average Score: <span id="average-score">0%</span></div>
             </div>
         </div>
 
         <div id="game-container"></div>
 
         <div id="hand-buttons">
-            <button class="hand-button" data-hand="royal_flush">Royal Flush</button>
-            <button class="hand-button" data-hand="straight_flush">Straight Flush</button>
-            <button class="hand-button" data-hand="four_of_a_kind">Four of a Kind</button>
-            <button class="hand-button" data-hand="full_house">Full House</button>
+            <button class="hand-button" data-hand="royal-flush">Royal Flush</button>
+            <button class="hand-button" data-hand="straight-flush">Straight Flush</button>
+            <button class="hand-button" data-hand="four-kind">Four of a Kind</button>
+            <button class="hand-button" data-hand="full-house">Full House</button>
             <button class="hand-button" data-hand="flush">Flush</button>
             <button class="hand-button" data-hand="straight">Straight</button>
-            <button class="hand-button" data-hand="three_of_a_kind">Three of a Kind</button>
-            <button class="hand-button" data-hand="two_pair">Two Pair</button>
-            <button class="hand-button" data-hand="one_pair">One Pair</button>
-            <button class="hand-button" data-hand="high_card">High Card</button>
+            <button class="hand-button" data-hand="three-kind">Three of a Kind</button>
+            <button class="hand-button" data-hand="two-pair">Two Pair</button>
+            <button class="hand-button" data-hand="one-pair">One Pair</button>
+            <button class="hand-button" data-hand="high-card">High Card</button>
         </div>
 
         <div id="menu" class="overlay">
@@ -40,7 +44,7 @@
                 </div>
                 <div class="mode-buttons">
                     <button class="mode-button" data-mode="tutorial">Start Tutorial</button>
-                    <button class="mode-button" data-mode="easy">Practice Mode<br><small>1 Minute</small></button>
+                    <button class="mode-button" data-mode="easy">Easy Mode<br><small>1 Minute</small></button>
                 </div>
             </div>
         </div>
@@ -56,6 +60,17 @@
                 </div>
                 <div class="progress-bar">
                     <div class="progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tutorial-complete" class="overlay" style="display: none;">
+            <div class="tutorial-content">
+                <h2>Tutorial Complete!</h2>
+                <p>Congratulations! You've learned all the poker hands.</p>
+                <p>Ready to test your knowledge?</p>
+                <div class="controls">
+                    <button id="return-to-menu" class="mode-button">Return to Menu</button>
                 </div>
             </div>
         </div>

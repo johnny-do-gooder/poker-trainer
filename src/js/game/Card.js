@@ -3,7 +3,7 @@ export class Card {
         this.rank = rank;
         this.suit = suit;
         this.element = null;
-        this.faceUp = false;
+        this.faceUp = false; // Start face down
     }
 
     getSuitSymbol() {
@@ -22,6 +22,7 @@ export class Card {
 
     createElement() {
         if (!this.element) {
+            console.log(`Creating element for ${this.rank}${this.getSuitSymbol()}`);
             // Create main card container
             this.element = document.createElement('div');
             this.element.className = 'card';
@@ -71,14 +72,18 @@ export class Card {
             // Add data attributes for styling
             this.element.dataset.rank = this.rank;
             this.element.dataset.suit = this.suit;
+            
+            console.log(`Created card element for ${this.rank}${this.getSuitSymbol()}`);
         }
         return this.element;
     }
 
     flip() {
+        console.log(`Flipping card ${this.rank}${this.getSuitSymbol()}`);
         this.faceUp = !this.faceUp;
         if (this.element) {
             this.element.classList.toggle('flipped', this.faceUp);
+            console.log(`Card ${this.rank}${this.getSuitSymbol()} flipped to ${this.faceUp ? 'face up' : 'face down'}`);
         }
     }
 

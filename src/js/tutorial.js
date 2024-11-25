@@ -11,9 +11,6 @@ export class Tutorial {
         // Set up event listeners
         this.setupEventListeners();
         
-        // Show initial hand
-        this.showHand();
-        
         // Initialize game state
         this.gameState = {
             isAnimating: false,
@@ -23,17 +20,29 @@ export class Tutorial {
         console.log('Tutorial initialized');
     }
 
+    start() {
+        // Show initial hand
+        this.currentIndex = 0;
+        this.showHand();
+        this.updateNavigationButtons();
+    }
+
     initializeElements() {
         // Get all required DOM elements
         this.cardContainer = document.querySelector('.card-container');
         this.handName = document.getElementById('hand-name');
         this.handDescription = document.getElementById('hand-description');
-        this.progress = document.querySelector('.progress');
-        
-        // Get button elements
         this.prevButton = document.getElementById('prev-tutorial');
         this.nextButton = document.getElementById('next-tutorial');
-        
+        this.progress = document.querySelector('.progress');
+        this.returnToMenuButton = document.getElementById('return-to-menu');
+
+        // Add return to menu handler
+        this.returnToMenuButton?.addEventListener('click', () => {
+            document.getElementById('tutorial-complete').style.display = 'none';
+            document.getElementById('menu').style.display = 'flex';
+        });
+
         // Validate elements exist
         if (!this.cardContainer || !this.handName || !this.handDescription || 
             !this.progress || !this.prevButton || !this.nextButton) {
@@ -176,9 +185,21 @@ export class Tutorial {
                     this.gameState.isTransitioning = false;
                 }, 600);
             } else {
-                // End of tutorial, show menu and enable practice mode
+                // Show tutorial completion screen
                 document.getElementById('tutorial-overlay').style.display = 'none';
-                document.getElementById('menu').style.display = 'flex';
+                document.getElementById('tutorial-complete').style.display = 'flex';
+                
+                // Handle return to menu
+                const returnButton = document.getElementById('return-to-menu');
+                if (returnButton && !returnButton.hasClickHandler) {
+                    returnButton.hasClickHandler = true;
+                    returnButton.addEventListener('click', () => {
+                        document.getElementById('tutorial-complete').style.display = 'none';
+                        document.getElementById('menu').classList.remove('hidden');
+                        // Clean up tutorial
+                        this.cleanup();
+                    });
+                }
             }
             this.updateNavigationButtons();
         });
@@ -227,15 +248,36 @@ export class Tutorial {
             const card = Card.fromCode(cardCode);
             const cardElement = card.createElement();
             this.cardContainer.appendChild(cardElement);
+            card.setFaceUp(true); // Make sure cards are face up in tutorial
             this.cards.push(card);
         });
         
         this.updateNavigationButtons();
     }
+
+    cleanup() {
+        // Remove all cards
+        while (this.cardContainer.firstChild) {
+            this.cardContainer.removeChild(this.cardContainer.firstChild);
+        }
+        
+        // Reset state
+        this.currentIndex = 0;
+        this.cards = [];
+        this.gameState = {
+            isAnimating: false,
+            isTransitioning: false
+        };
+        
+        // Remove event listeners
+        this.prevButton.replaceWith(this.prevButton.cloneNode(true));
+        this.nextButton.replaceWith(this.nextButton.cloneNode(true));
+        this.cardContainer.replaceWith(this.cardContainer.cloneNode(true));
+        
+        // Re-initialize elements after cleanup
+        this.initializeElements();
+    }
 }
 
-// Start the tutorial when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Content Loaded - Starting Tutorial');
-    window.tutorial = new Tutorial();
-});
+// Initialize tutorial when needed from main.js
+// Remove the auto-start behavior since main.js handles this

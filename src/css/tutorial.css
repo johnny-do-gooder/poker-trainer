@@ -102,3 +102,47 @@
 .card.incorrect {
     animation: incorrectAnimation 0.6s ease;
 }
+
+#tutorial-complete {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+#tutorial-complete .tutorial-content {
+    text-align: center;
+    padding: 2rem;
+    border-radius: 10px;
+    background-color: #fff;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+#tutorial-complete h2 {
+    color: #2c3e50;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+#tutorial-complete p {
+    color: #34495e;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+#tutorial-complete .controls {
+    margin-top: 2rem;
+}
+
+#tutorial-complete .mode-button {
+    font-size: 1.2rem;
+    padding: 1rem 2rem;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#tutorial-complete .mode-button:hover {
+    background-color: #2980b9;
+}

@@ -14,37 +14,90 @@ export class Game {
         this.container = container;
         this.deck = new Deck();
         this.currentHand = null;
-        this.score = 0;
+        this.score = {
+            correct: 0,
+            incorrect: 0,
+            percentage: 0
+        };
         this.timeLeft = 0;
         this.gameMode = null;
         this.timer = null;
         this.isGameActive = false;
+        this.sounds = {};
+        this.soundsInitialized = false;
         
-        // Initialize sounds
-        this.initializeSounds();
         this.setupEventListeners();
         
         console.log('Game class initialized');
     }
 
-    initializeSounds() {
+    async initializeSounds() {
+        console.log('Starting sound initialization');
+        if (this.soundsInitialized) {
+            console.log('Sounds already initialized');
+            return;
+        }
+        
         try {
-            this.sounds = {
-                cardDeal: new Howl({ src: ['/src/assets/sounds/card-deal.mp3'] }),
-                cardFlip: new Howl({ src: ['/src/assets/sounds/card-flip.mp3'] }),
-                correct: new Howl({ src: ['/src/assets/sounds/correct.mp3'] }),
-                wrong: new Howl({ src: ['/src/assets/sounds/wrong.mp3'] }),
-                gameStart: new Howl({ src: ['/src/assets/sounds/game-start.mp3'] }),
-                gameOver: new Howl({ src: ['/src/assets/sounds/game-over.mp3'] })
-            };
-        } catch (error) {
-            console.error('Error initializing sounds:', error);
+            console.log('Creating unlock sound');
+            // Create a temporary silent sound and play it to unlock audio context
+            const unlockSound = new Howl({ src: ['/src/assets/sounds/card-flip.mp3'], volume: 0 });
+            console.log('Unlock sound created');
+            
+            await new Promise((resolve, reject) => {
+                console.log('Waiting for unlock sound to load');
+                unlockSound.once('load', () => {
+                    console.log('Unlock sound loaded, playing...');
+                    unlockSound.play();
+                    resolve();
+                });
+                unlockSound.once('loaderror', (id, err) => {
+                    console.error('Error loading unlock sound:', err);
+                    reject(new Error('Failed to load unlock sound'));
+                });
+
+                // Add a timeout in case the load event never fires
+                setTimeout(() => {
+                    reject(new Error('Timeout waiting for unlock sound to load'));
+                }, 5000);
+            });
+
+            console.log('Creating sound effects');
             this.sounds = {};
+            this.soundsInitialized = true; // Mark as initialized even if some sounds fail
+            
+            // Create each sound individually to isolate failures
+            const soundFiles = {
+                cardDeal: '/src/assets/sounds/card-deal.mp3',
+                cardFlip: '/src/assets/sounds/card-flip.mp3',
+                correct: '/src/assets/sounds/correct.mp3',
+                wrong: '/src/assets/sounds/wrong.mp3',
+                gameStart: '/src/assets/sounds/game-start.mp3',
+                gameOver: '/src/assets/sounds/game-over.mp3'
+            };
+
+            for (const [name, src] of Object.entries(soundFiles)) {
+                try {
+                    console.log(`Creating sound: ${name}`);
+                    this.sounds[name] = new Howl({ src: [src] });
+                } catch (error) {
+                    console.error(`Error creating sound ${name}:`, error);
+                }
+            }
+            
+            console.log('Sound initialization complete');
+        } catch (error) {
+            console.error('Error in sound initialization:', error);
+            // Don't let sound initialization failure stop the game
+            this.sounds = {};
+            this.soundsInitialized = true; // Mark as initialized to prevent retries
+            console.log('Continuing without sound effects');
         }
     }
 
     setupEventListeners() {
         console.log('Setting up event listeners');
+        
         // Add event listeners for hand selection buttons
         const buttons = document.querySelectorAll('.hand-button');
         console.log('Found hand buttons:', buttons.length);
@@ -62,34 +115,62 @@ export class Game {
         });
     }
 
-    startGame(mode) {
+    async startGame(mode) {
         console.log('Starting game with mode:', mode);
-        this.gameMode = mode;
-        this.score = 0;
-        this.timeLeft = MODE_DURATIONS[mode];
-        this.isGameActive = true;
-        this.deck = new Deck(); // Fresh deck
         
         try {
-            this.sounds.gameStart?.play();
+            // Initialize sounds if not already done
+            if (!this.soundsInitialized) {
+                console.log('Initializing sounds...');
+                await this.initializeSounds();
+                console.log('Sounds initialized');
+            }
+            
+            console.log('Setting up game state');
+            this.gameMode = mode;
+            this.score = {
+                correct: 0,
+                incorrect: 0,
+                percentage: 0
+            };
+            this.timeLeft = MODE_DURATIONS[mode];
+            this.isGameActive = true;
+            this.deck = new Deck(); // Fresh deck
+
+            console.log('Setting up game container');
+            // Ensure game container is ready
+            this.container.style.display = 'block';
+            this.container.innerHTML = '';
+            
+            try {
+                if (this.soundsInitialized) {
+                    this.sounds.gameStart?.play();
+                }
+            } catch (error) {
+                console.error('Error playing game start sound:', error);
+            }
+            
+            console.log('Starting timer and dealing first hand');
+            this.startTimer();
+            this.dealNewHand();
+            
+            // Update UI
+            this.updateScore();
+            this.updateTimer();
+            
+            console.log('Game started successfully');
         } catch (error) {
-            console.error('Error playing game start sound:', error);
+            console.error('Error starting game:', error);
+            throw error; // Re-throw to see the full stack trace
         }
-        
-        this.startTimer();
-        this.dealNewHand();
-        
-        // Update UI
-        this.updateScore();
-        this.updateTimer();
-        
-        console.log('Game started successfully');
     }
 
     dealNewHand() {
         console.log('Dealing new hand');
+        
         // Clear previous hand
         if (this.currentHand) {
+            console.log('Clearing previous hand');
             this.currentHand.cards.forEach(card => {
                 if (card.element && card.element.parentNode) {
                     card.element.parentNode.removeChild(card.element);
@@ -99,30 +180,49 @@ export class Game {
 
         // Deal new cards
         const cards = this.deck.dealCards(5);
+        console.log('Dealt cards:', cards.map(c => `${c.rank}${c.getSuitSymbol()}`).join(' '));
+        
+        // Sort cards by rank (highest to lowest)
+        const rankValues = {
+            'A': 14, 'K': 13, 'Q': 12, 'J': 11,
+            '10': 10, '9': 9, '8': 8, '7': 7,
+            '6': 6, '5': 5, '4': 4, '3': 3, '2': 2
+        };
+        cards.sort((a, b) => rankValues[b.rank] - rankValues[a.rank]);
+        
         this.currentHand = new PokerHand(cards);
         console.log('New hand:', this.currentHand.toString());
         
         // Create and display cards
         const cardContainer = document.createElement('div');
         cardContainer.className = 'card-container';
+        this.container.innerHTML = ''; // Clear container first
+        this.container.appendChild(cardContainer);
         
-        cards.forEach((card, index) => {
+        console.log('Created card container');
+        
+        // Create all card elements first
+        cards.forEach(card => {
             const cardElement = card.createElement();
             cardContainer.appendChild(cardElement);
-            
-            // Animate card dealing
-            setTimeout(() => {
-                try {
-                    this.sounds.cardDeal?.play();
-                } catch (error) {
-                    console.error('Error playing card deal sound:', error);
-                }
-                card.flip();
-            }, index * 200);
         });
         
-        this.container.innerHTML = '';
-        this.container.appendChild(cardContainer);
+        console.log('Added all card elements');
+        
+        // Then animate them with a delay
+        cards.forEach((card, index) => {
+            setTimeout(() => {
+                try {
+                    if (this.soundsInitialized) {
+                        this.sounds.cardDeal?.play();
+                    }
+                    card.flip();
+                    console.log(`Flipped card ${index + 1}`);
+                } catch (error) {
+                    console.error('Error during card flip:', error);
+                }
+            }, index * 200);
+        });
     }
 
     checkAnswer(selectedRank) {
@@ -146,9 +246,16 @@ export class Game {
         
         // Update score
         if (isCorrect) {
-            this.score += this.currentHand.getPoints();
-            this.updateScore();
+            this.score.correct++;
+        } else {
+            this.score.incorrect++;
         }
+        
+        // Calculate percentage
+        const total = this.score.correct + this.score.incorrect;
+        this.score.percentage = total > 0 ? Math.round((this.score.correct / total) * 100) : 0;
+        
+        this.updateScore();
         
         // Deal next hand after a short delay
         setTimeout(() => this.dealNewHand(), 1000);
@@ -171,6 +278,7 @@ export class Game {
     updateTimer() {
         const minutes = Math.floor(this.timeLeft / 60);
         const seconds = this.timeLeft % 60;
+        
         const timerElement = document.getElementById('timer');
         if (timerElement) {
             timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -178,9 +286,20 @@ export class Game {
     }
 
     updateScore() {
+        const correctElement = document.getElementById('correct');
+        const incorrectElement = document.getElementById('incorrect');
         const scoreElement = document.getElementById('score');
+        
+        if (correctElement) {
+            correctElement.textContent = this.score.correct;
+        }
+        
+        if (incorrectElement) {
+            incorrectElement.textContent = this.score.incorrect;
+        }
+        
         if (scoreElement) {
-            scoreElement.textContent = this.score;
+            scoreElement.textContent = `${this.score.percentage}%`;
         }
     }
 
@@ -200,8 +319,12 @@ export class Game {
         gameOverScreen.className = 'game-over';
         gameOverScreen.innerHTML = `
             <h2>Game Over!</h2>
-            <p>Final Score: ${this.score}</p>
-            <button id="play-again">Play Again</button>
+            <div class="final-score">
+                <p>Correct Answers: ${this.score.correct}</p>
+                <p>Incorrect Answers: ${this.score.incorrect}</p>
+                <p>Final Score: ${this.score.percentage}%</p>
+            </div>
+            <button id="play-again" class="mode-button">Play Again</button>
         `;
         
         this.container.innerHTML = '';
