@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Poker Hand Trainer</title>
-    <link rel="stylesheet" href="/src/css/styles.css">
-    <link rel="stylesheet" href="/src/css/tutorial.css">
+    <link rel="stylesheet" href="src/css/styles.css">
+    <link rel="stylesheet" href="src/css/tutorial.css">
 </head>
 <body>
     <div id="game">
@@ -35,50 +35,71 @@
             <button class="hand-button" data-hand="high-card">High Card</button>
         </div>
 
-        <div id="menu" class="overlay">
-            <div class="menu-content">
-                <h1>Poker Hand Trainer</h1>
-                <div class="tutorial-intro">
-                    <p>Welcome to the Poker Hand Trainer! Let's start by learning the basics.</p>
-                    <p>You'll be shown different poker hands and need to identify them correctly.</p>
-                </div>
-                <div class="mode-buttons">
-                    <button class="mode-button" data-mode="tutorial">Start Tutorial</button>
-                    <button class="mode-button" data-mode="easy">Easy Mode<br><small>1 Minute</small></button>
-                    <button class="mode-button" data-mode="medium">Medium Mode<br><small>2.5 Minutes</small></button>
-                    <button class="mode-button" data-mode="hard">Hard Mode<br><small>5 Minutes</small></button>
-                    <button class="mode-button" data-mode="gauntlet">Gauntlet Mode<br><small>Endless</small></button>
-                </div>
+        <div id="menu" class="screen">
+            <h1>Johnny Do-Gooder's Poker Hand Trainer</h1>
+            <div class="menu-buttons">
+                <button id="tutorial-button">Basic Tutorial</button>
+                <button id="advanced-tutorial-button">Advanced Concepts</button>
+                <button id="easy-mode">Easy Mode</button>
+                <button id="medium-mode">Medium Mode</button>
+                <button id="hard-mode">Hard Mode</button>
+                <button id="gauntlet-mode">Gauntlet Mode</button>
             </div>
         </div>
 
-        <div id="tutorial-overlay" class="overlay" style="display: none;">
+        <!-- Basic Tutorial Overlay -->
+        <div id="tutorial-overlay" class="screen tutorial-overlay">
             <div class="tutorial-content">
-                <h2 id="hand-name"></h2>
+                <h2>Basic Poker Hands</h2>
+                <h3 id="hand-name"></h3>
                 <p id="hand-description"></p>
                 <div class="card-container"></div>
-                <div class="controls">
-                    <button id="prev-tutorial">Previous</button>
+                <div class="tutorial-controls">
+                    <button id="prev-tutorial" disabled>Previous</button>
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
                     <button id="next-tutorial">Next</button>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress"></div>
-                </div>
             </div>
         </div>
 
-        <div id="tutorial-complete" class="overlay" style="display: none;">
+        <!-- Advanced Tutorial Overlay -->
+        <div id="advanced-tutorial-overlay" class="screen tutorial-overlay">
             <div class="tutorial-content">
-                <h2>Tutorial Complete!</h2>
-                <p>Congratulations! You've learned all the poker hands.</p>
-                <p>Return to the menu to start playing!</p>
-                <div class="controls">
-                    <button id="return-to-menu" class="mode-button">Return to Menu</button>
+                <h2>Advanced Poker Concepts</h2>
+                <h3 id="advanced-hand-name"></h3>
+                <p id="advanced-hand-description"></p>
+                <div class="advanced-card-container"></div>
+                <div class="tutorial-controls">
+                    <button id="prev-advanced" disabled>Previous</button>
+                    <div class="progress-bar">
+                        <div class="advanced-progress"></div>
+                    </div>
+                    <button id="next-advanced">Next</button>
                 </div>
             </div>
         </div>
 
-        <div id="game-over" class="overlay" style="display: none;">
+        <!-- Basic Tutorial Complete Screen -->
+        <div id="tutorial-complete" class="screen">
+            <h2>Basic Tutorial Complete!</h2>
+            <p>You've learned all the basic poker hands. Return to the menu to start playing!</p>
+            <div class="menu-buttons">
+                <button id="menu-from-tutorial">Return to Menu</button>
+            </div>
+        </div>
+
+        <!-- Advanced Tutorial Complete Screen -->
+        <div id="advanced-tutorial-complete" class="screen">
+            <h2>Advanced Concepts Mastered!</h2>
+            <p>You've learned advanced poker concepts and special hands. Return to the menu to test your skills!</p>
+            <div class="menu-buttons">
+                <button id="menu-from-advanced">Return to Menu</button>
+            </div>
+        </div>
+
+        <div id="game-over" class="screen">
             <div class="game-over-content">
                 <h2>Game Over!</h2>
                 <div class="final-stats">
@@ -93,6 +114,7 @@
             </div>
         </div>
     </div>
-    <script type="module" src="/src/js/main.js"></script>
+    <script type="module" src="src/js/main.js"></script>
+    <script type="module" src="tests/menuTest.js"></script>
 </body>
 </html>

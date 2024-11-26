@@ -15,7 +15,7 @@ export const MODE_DURATIONS = {
 export const MODE_SETTINGS = {
     [GAME_MODES.EASY]: {
         handComplexity: 1, // Basic hands more common
-        handTimed: true, // Each hand costs 1 second
+        handTimed: false, // Session timed
         timeLimit: 60000, // 1 minute
         points: {
             correct: 100,
@@ -42,7 +42,7 @@ export const MODE_SETTINGS = {
     },
     [GAME_MODES.GAUNTLET]: {
         handComplexity: 4, // All hands equally likely
-        handTimed: false, // Endless mode
+        handTimed: false, // No timer
         timeLimit: Infinity, // No time limit
         points: {
             correct: 500,

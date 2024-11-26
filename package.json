@@ -13,11 +13,29 @@
     "howler": "^2.2.4"
   },
   "devDependencies": {
+    "jsdom": "^25.0.1",
     "vite": "^5.0.12"
   },
   "description": "A beautiful and engaging poker hand training game with modern graphics and animations. Test and improve your poker hand recognition skills in various game modes.",
   "main": "vite.config.js",
-  "keywords": ["poker", "game", "training", "css", "animations"],
+  "keywords": [
+    "poker",
+    "game",
+    "training",
+    "css",
+    "animations"
+  ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnny-do-gooder/poker-trainer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johnny-do-gooder/poker-trainer/issues"
+  },
+  "homepage": "https://github.com/johnny-do-gooder/poker-trainer#readme"
 }

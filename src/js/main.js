@@ -1,185 +1,156 @@
-import { Game } from './game/Game';
-import { Tutorial } from './tutorial';
-import { GAME_MODES } from './utils/Constants';
-import { Card } from './game/Card';
+import { Game } from './game/Game.js';
+import { Tutorial } from './tutorial.js';
+import { AdvancedTutorial } from './advancedTutorial.js';
+import { GAME_MODES } from './utils/Constants.js';
+import { Card } from './game/Card.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM Content Loaded');
+    console.log('[Main] Initializing game...');
     
     // Initialize game elements
     const gameContainer = document.getElementById('game-container');
     const menuOverlay = document.getElementById('menu');
     const tutorialOverlay = document.getElementById('tutorial-overlay');
+    const advancedTutorialOverlay = document.getElementById('advanced-tutorial-overlay');
     const handButtons = document.getElementById('hand-buttons');
     
-    if (!gameContainer || !menuOverlay || !handButtons || !tutorialOverlay) {
+    if (!gameContainer || !menuOverlay || !handButtons || !tutorialOverlay || !advancedTutorialOverlay) {
         console.error('Required game elements not found!');
         return;
     }
     
-    // Hide hand buttons and tutorial overlay initially
-    handButtons.style.display = 'none';
-    tutorialOverlay.style.display = 'none';
-    
     let currentGame = null;
     let currentTutorial = null;
-    let tutorialActive = false;
+    let currentAdvancedTutorial = null;
+    
+    // Function to hide all screens
+    const hideAllScreens = () => {
+        console.log('[Main] Hiding all screens');
+        const screens = document.querySelectorAll('.screen');
+        screens.forEach(screen => {
+            console.log('[Main] Hiding screen:', screen.id);
+            screen.style.display = 'none';
+        });
+        
+        // Also hide game container and hand buttons
+        const gameContainer = document.getElementById('game-container');
+        const handButtons = document.getElementById('hand-buttons');
+        if (gameContainer) gameContainer.style.display = 'none';
+        if (handButtons) handButtons.style.display = 'none';
+    };
+    
+    // Function to show a specific screen
+    const showScreen = (screen, displayStyle = 'flex') => {
+        if (screen) {
+            hideAllScreens();
+            screen.style.display = displayStyle;
+        }
+    };
+    
+    // Set initial display states
+    const initializeScreens = () => {
+        console.log('[Main] Initializing screen states');
+        hideAllScreens();
+        const menuScreen = document.getElementById('menu');
+        if (menuScreen) {
+            menuScreen.style.display = 'flex';
+        }
+    };
+    
+    // Initialize screens
+    initializeScreens();
     
     // Function to clean up previous game/tutorial
-    const cleanup = (preserveGameInstance = false) => {
+    const cleanup = () => {
+        console.log('[Main] Cleaning up...');
         if (currentGame) {
             currentGame.cleanup();
-            if (!preserveGameInstance) {
-                currentGame = null;
-            }
+            currentGame = null;
         }
         if (currentTutorial) {
             currentTutorial.cleanup();
             currentTutorial = null;
         }
-        tutorialActive = false;
-        
-        // Reset UI elements
-        handButtons.style.display = 'none';
-        tutorialOverlay.style.display = 'none';
-        document.getElementById('tutorial-complete').style.display = 'none';
-        menuOverlay.style.display = 'flex';
-        menuOverlay.classList.remove('hidden');
+        if (currentAdvancedTutorial) {
+            currentAdvancedTutorial.cleanup();
+            currentAdvancedTutorial = null;
+        }
     };
     
     // Function to start game with specified mode
     const startGame = async (mode) => {
-        console.log('[Main] Starting new game with mode:', mode);
+        console.log(`[Main] Starting game mode: ${mode}`);
+        cleanup();
+        hideAllScreens();
         
-        cleanup(true);  // Preserve game instance when starting new game
-
-        console.log('[Main] Hiding overlays');
-        // Hide all overlays
-        const overlays = document.querySelectorAll('.overlay');
-        overlays.forEach(overlay => {
-            overlay.style.display = 'none';
-            overlay.classList.add('hidden');
-        });
-        
-        console.log('[Main] Showing hand buttons');
-        // Show hand buttons
-        handButtons.style.display = 'flex';
-        
-        if (!currentGame) {
-            console.log('[Main] Creating new game instance');
-            currentGame = new Game(gameContainer, mode);
+        // Show game container
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+            gameContainer.style.display = 'flex';
         }
-        console.log('[Main] Starting game');
+        
+        // Initialize and start new game
+        currentGame = new Game(gameContainer, mode);
         await currentGame.startGame(mode);
     };
     
-    // Event listeners for tutorial completion
-    document.getElementById('return-to-menu').addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+    // Add event listeners with null checks
+    const addClickHandler = (elementId, handler) => {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.addEventListener('click', handler);
+        }
+    };
+    
+    // Tutorial button handlers
+    addClickHandler('tutorial-button', () => {
+        console.log('[Main] Starting basic tutorial');
         cleanup();
-        tutorialActive = false;  // Explicitly reset tutorial state
-        
-        // Show menu
-        menuOverlay.style.display = 'flex';
-        menuOverlay.classList.remove('hidden');
-        
-        // Hide tutorial overlays
-        tutorialOverlay.style.display = 'none';
-        document.getElementById('tutorial-complete').style.display = 'none';
+        currentTutorial = new Tutorial();
+        currentTutorial.start();
+        showScreen(tutorialOverlay);
     });
-
-    // Add mode selection handlers
-    const modeButtons = document.querySelectorAll('.menu-content .mode-button');
-    console.log('Mode buttons found:', modeButtons.length);
-    modeButtons.forEach(button => {
-        button.addEventListener('click', async (e) => {
-            // Prevent event bubbling
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const mode = button.dataset.mode;
-            console.log('[Main] Mode button clicked:', mode);
-            
-            if (mode === 'tutorial') {
-                console.log('[Main] Starting tutorial mode');
-                // Clean up any existing instances
-                if (currentGame) {
-                    currentGame.cleanup();
-                    currentGame = null;
-                }
-                if (currentTutorial) {
-                    currentTutorial.cleanup();
-                    currentTutorial = null;
-                }
-                
-                // Clean up all card instances
-                Card.cleanup();
-                
-                // Clear all card containers explicitly
-                const cardContainers = document.querySelectorAll('.card-container');
-                cardContainers.forEach(container => {
-                    container.innerHTML = '';
-                });
-                
-                // Create new tutorial instance
-                tutorialActive = true;
-                tutorialOverlay.style.display = 'flex';
-                menuOverlay.style.display = 'none';
-                currentTutorial = new Tutorial();
-                currentTutorial.start();
-            } else {
-                console.log('[Main] Starting game mode:', mode);
-                // Clean up any existing instances
-                if (currentGame) {
-                    currentGame.cleanup();
-                    currentGame = null;
-                }
-                if (currentTutorial) {
-                    currentTutorial.cleanup();
-                    currentTutorial = null;
-                }
-                // Clean up all card instances
-                Card.cleanup();
-                
-                await startGame(mode || GAME_MODES.EASY);
-            }
+    
+    addClickHandler('advanced-tutorial-button', () => {
+        console.log('[Main] Starting advanced tutorial');
+        cleanup();
+        currentAdvancedTutorial = new AdvancedTutorial();
+        currentAdvancedTutorial.start();
+        showScreen(advancedTutorialOverlay);
+    });
+    
+    // Game mode button handlers
+    const gameModes = {
+        'easy-mode': GAME_MODES.EASY,
+        'medium-mode': GAME_MODES.MEDIUM,
+        'hard-mode': GAME_MODES.HARD,
+        'gauntlet-mode': GAME_MODES.GAUNTLET
+    };
+    
+    Object.entries(gameModes).forEach(([buttonId, mode]) => {
+        addClickHandler(buttonId, () => {
+            console.log(`[Main] Starting game mode: ${mode}`);
+            startGame(mode);
         });
     });
-
-    // Add game over button handlers
-    document.getElementById('play-again').addEventListener('click', async () => {
+    
+    // Return to menu handlers
+    const returnToMenu = () => {
+        cleanup();
+        showScreen(document.getElementById('menu'));
+    };
+    
+    addClickHandler('menu-from-tutorial', returnToMenu);
+    addClickHandler('menu-from-advanced', returnToMenu);
+    addClickHandler('game-over-menu', returnToMenu);
+    
+    // Game over handlers
+    addClickHandler('play-again', async () => {
         console.log('[Main] Play Again clicked');
-        const currentMode = currentGame?.mode?.toLowerCase() || GAME_MODES.EASY;
-        if (currentGame) {
-            console.log('[Main] Cleaning up existing game');
-            currentGame.cleanup();
-            console.log('[Main] Restarting game with mode:', currentMode);
-            await currentGame.startGame(currentMode);
-        } else {
-            console.log('[Main] No existing game, creating new instance');
-            await startGame(currentMode);
-        }
+        const mode = currentGame?.mode || GAME_MODES.EASY;
+        await startGame(mode);
     });
-
-    document.getElementById('game-over-menu').addEventListener('click', () => {
-        console.log('[Main] Return to Menu clicked from game over');
-        if (currentGame) {
-            currentGame.cleanup();
-            currentGame = null;
-        }
-        const gameOver = document.getElementById('game-over');
-        gameOver.style.display = 'none';
-        gameOver.classList.add('hidden');
-        menuOverlay.style.display = 'flex';
-        menuOverlay.classList.remove('hidden');
-        
-        // Refresh the page after a short delay to ensure cleanup is complete
-        setTimeout(() => {
-            window.location.reload();
-        }, 100);
-    });
-
+    
     // Handle window unload
     window.addEventListener('beforeunload', cleanup);
 });

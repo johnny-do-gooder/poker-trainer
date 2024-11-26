@@ -1,10 +1,10 @@
-import { Card } from './game/Card.js';
+import { Card } from './game/Card';
 
-export class Tutorial {
+export class AdvancedTutorial {
     constructor() {
-        console.log('[Tutorial] Starting tutorial initialization');
+        console.log('[AdvancedTutorial] Starting advanced tutorial initialization');
         // Clean up any existing card container content
-        const existingContainer = document.querySelector('.card-container');
+        const existingContainer = document.querySelector('.advanced-card-container');
         if (existingContainer) {
             while (existingContainer.firstChild) {
                 existingContainer.removeChild(existingContainer.firstChild);
@@ -26,32 +26,32 @@ export class Tutorial {
             isTransitioning: false
         };
         
-        console.log('[Tutorial] Tutorial initialized');
+        console.log('[AdvancedTutorial] Advanced tutorial initialized');
     }
 
     start() {
-        console.log('[Tutorial] Starting tutorial');
+        console.log('[AdvancedTutorial] Starting advanced tutorial');
         // Show initial hand
         this.currentIndex = 0;
         this.showHand(this.currentIndex);
         this.updateNavigationButtons();
-        document.getElementById('tutorial-overlay').style.display = 'flex';
+        document.getElementById('advanced-tutorial-overlay').style.display = 'flex';
     }
 
     initializeElements() {
         // Get all required DOM elements
-        this.cardContainer = document.querySelector('.card-container');
-        this.handName = document.getElementById('hand-name');
-        this.handDescription = document.getElementById('hand-description');
-        this.prevButton = document.getElementById('prev-tutorial');
-        this.nextButton = document.getElementById('next-tutorial');
-        this.progress = document.querySelector('.progress');
+        this.cardContainer = document.querySelector('.advanced-card-container');
+        this.handName = document.getElementById('advanced-hand-name');
+        this.handDescription = document.getElementById('advanced-hand-description');
+        this.prevButton = document.getElementById('prev-advanced');
+        this.nextButton = document.getElementById('next-advanced');
+        this.progress = document.querySelector('.advanced-progress');
         this.returnToMenuButton = document.getElementById('return-to-menu');
 
         // Validate elements exist
         if (!this.cardContainer || !this.handName || !this.handDescription || 
             !this.progress || !this.prevButton || !this.nextButton) {
-            console.error('Required elements not found!');
+            console.error('[AdvancedTutorial] Required elements not found!');
             return;
         }
         
@@ -61,164 +61,113 @@ export class Tutorial {
     }
 
     initializeHands() {
-        // Store the hand types
+        // Store the advanced hand types
         this.tutorialHands = [
-            // Basic Hands (1-10)
-            {
-                name: "Royal Flush",
-                description: "The highest possible hand in poker. A straight flush from 10 to Ace, all in the same suit.",
-                cards: ["AS", "KS", "QS", "JS", "TS"]
-            },
-            {
-                name: "Straight Flush",
-                description: "Five consecutive cards of the same suit.",
-                cards: ["9H", "8H", "7H", "6H", "5H"]
-            },
-            {
-                name: "Four of a Kind",
-                description: "Four cards of the same rank.",
-                cards: ["KH", "KD", "KC", "KS", "2C"]
-            },
-            {
-                name: "Full House",
-                description: "Three cards of one rank and two cards of another rank.",
-                cards: ["JH", "JD", "JC", "9S", "9C"]
-            },
-            {
-                name: "Flush",
-                description: "Any five cards of the same suit.",
-                cards: ["AH", "JH", "8H", "6H", "2H"]
-            },
-            {
-                name: "Straight",
-                description: "Five consecutive cards of different suits.",
-                cards: ["9S", "8H", "7D", "6C", "5H"]
-            },
-            {
-                name: "Three of a Kind",
-                description: "Three cards of the same rank.",
-                cards: ["7H", "7D", "7C", "KS", "2C"]
-            },
-            {
-                name: "Two Pair",
-                description: "Two different pairs of cards.",
-                cards: ["AH", "AD", "KS", "KC", "2C"]
-            },
-            {
-                name: "One Pair",
-                description: "Two cards of the same rank.",
-                cards: ["QH", "QD", "AS", "8C", "3H"]
-            },
-            {
-                name: "High Card",
-                description: "When you don't have any of the above hands, your highest card plays.",
-                cards: ["AH", "JD", "8S", "6C", "2H"]
-            },
-            // Advanced Examples (11-20)
+            // Advanced Examples (1-10)
             {
                 name: "Steel Wheel",
-                description: "A special type of straight flush: Ace through 5 in the same suit.",
+                description: "A special type of straight flush: Ace through 5 in the same suit. This is the lowest possible straight flush.",
                 cards: ["AS", "2S", "3S", "4S", "5S"]
             },
             {
                 name: "Broadway Straight",
-                description: "A straight from Ten to Ace, also known as a Broadway.",
+                description: "A straight from Ten to Ace, also known as a Broadway. This is the highest possible straight without being a straight flush.",
                 cards: ["AC", "KC", "QH", "JD", "TS"]
             },
             {
                 name: "Wheel Straight",
-                description: "The lowest possible straight: Ace through 5.",
+                description: "The lowest possible straight: Ace through 5. The Ace plays as a low card in this case.",
                 cards: ["AC", "2D", "3H", "4S", "5C"]
             },
             {
                 name: "Pocket Rockets",
-                description: "A pair of Aces, the highest possible pair.",
+                description: "A pair of Aces, the highest possible pair. In Texas Hold'em, this is the strongest starting hand.",
                 cards: ["AH", "AD", "KS", "QC", "JH"]
             },
             {
                 name: "Monster Full House",
-                description: "The highest possible full house: Aces full of Kings.",
+                description: "The highest possible full house: Aces full of Kings. This hand loses only to four of a kind and straight flushes.",
                 cards: ["AH", "AD", "AC", "KS", "KH"]
             },
             {
                 name: "Mini Full House",
-                description: "The lowest possible full house: Twos full of Threes.",
+                description: "The lowest possible full house: Twos full of Threes. Even the lowest full house beats any flush or straight.",
                 cards: ["2H", "2D", "2C", "3S", "3H"]
             },
             {
                 name: "Suited Connectors",
-                description: "Adjacent cards of the same suit, valuable for making straights and flushes.",
+                description: "Adjacent cards of the same suit. These cards have great potential for making straights and flushes, making them valuable drawing hands.",
                 cards: ["JH", "TH", "9H", "8H", "7H"]
             },
             {
                 name: "Rainbow Straight",
-                description: "A straight where each card is a different suit.",
+                description: "A straight where each card is a different suit. While not as strong as a straight flush, it's still a powerful hand.",
                 cards: ["8H", "7S", "6D", "5C", "4H"]
             },
             {
                 name: "Quads with Kicker",
-                description: "Four of a kind with the highest possible kicker.",
+                description: "Four of a kind with the highest possible kicker. In this case, four Queens with an Ace kicker is a very strong hand.",
                 cards: ["QH", "QD", "QS", "QC", "AH"]
             },
             {
                 name: "Double Suited",
-                description: "Two pairs where each pair shares the same suit.",
+                description: "Two pairs where each pair shares the same suit. This pattern can be valuable for making flushes while already having strong pairs.",
                 cards: ["AH", "AD", "KH", "KD", "2C"]
             },
-            // Special Situations (21-30)
+            // Drawing Hands and Special Situations (11-20)
             {
                 name: "Almost Royal",
-                description: "One card away from a Royal Flush, showing the importance of drawing hands.",
+                description: "One card away from a Royal Flush. This is a powerful drawing hand as you could make the highest possible poker hand.",
                 cards: ["AS", "KS", "QS", "JS", "9S"]
             },
             {
                 name: "Four to a Straight Flush",
-                description: "Four cards to a potential straight flush, a powerful drawing hand.",
+                description: "Four cards to a potential straight flush. This is one of the strongest drawing hands possible, with potential for both a straight and a flush.",
                 cards: ["7H", "6H", "5H", "4H", "2S"]
             },
             {
                 name: "Trips vs Set",
-                description: "Three of a kind made differently: two in hand, one on board (set) is stronger.",
+                description: "Three of a kind made differently: two in hand, one on board (set) is stronger than two on board, one in hand (trips).",
                 cards: ["8H", "8D", "8C", "AH", "KD"]
             },
             {
                 name: "Backdoor Flush Draw",
-                description: "Three cards of the same suit, potential for a flush with two perfect cards.",
+                description: "Three cards of the same suit. While weaker than a four-card flush draw, it can still make a flush with the right cards.",
                 cards: ["AH", "KH", "QH", "JS", "TD"]
             },
             {
                 name: "Gutshot Straight Draw",
-                description: "Four cards to a straight with one missing card in the middle.",
+                description: "Four cards to a straight with one missing card in the middle. Also known as an inside straight draw, it needs exactly one specific card to complete.",
                 cards: ["QH", "JD", "9S", "8C", "7H"]
             },
             {
                 name: "Open-Ended Straight Draw",
-                description: "Four consecutive cards that can make a straight with a card at either end.",
+                description: "Four consecutive cards that can make a straight with a card at either end. This is stronger than a gutshot as it has twice as many outs.",
                 cards: ["9H", "8D", "7S", "6C", "4H"]
             },
             {
                 name: "Overcard Draw",
-                description: "High cards that haven't paired but could make a strong hand.",
+                description: "High cards that haven't paired but could make strong pairs. These hands have potential to win even without making a straight or flush.",
                 cards: ["AH", "KD", "7S", "5C", "2H"]
             },
             {
                 name: "Double Gutter Draw",
-                description: "A unique straight draw that can be completed by cards at two different positions.",
+                description: "A unique straight draw that can be completed by cards at two different positions. This hand has eight outs to make a straight.",
                 cards: ["TH", "8D", "7S", "6C", "4H"]
             },
             {
                 name: "Ace-High Flush Draw",
-                description: "Four cards to a flush with an Ace, a very strong drawing hand.",
+                description: "Four cards to a flush with an Ace. This is the strongest possible flush draw, as completing it gives you the nut flush.",
                 cards: ["AH", "JH", "8H", "5H", "2C"]
             },
             {
                 name: "Double Paired Board",
-                description: "Two pairs with potential for a full house, showing board texture reading.",
+                description: "Two pairs with potential for a full house. Understanding board texture helps in reading opponents' possible hands.",
                 cards: ["TH", "TD", "7S", "7C", "AH"]
             }
         ];
         
-        console.log('[Tutorial] Initialized hands:', this.tutorialHands.length);
+        console.log('[AdvancedTutorial] Initialized hands:', this.tutorialHands.length);
     }
 
     setupEventListeners() {
@@ -241,9 +190,9 @@ export class Tutorial {
                 this.updateNavigationButtons();
             } else {
                 // Tutorial complete
-                console.log('[Tutorial] Completing tutorial');
-                document.getElementById('tutorial-overlay').style.display = 'none';
-                document.getElementById('tutorial-complete').style.display = 'flex';
+                console.log('[AdvancedTutorial] Completing advanced tutorial');
+                document.getElementById('advanced-tutorial-overlay').style.display = 'none';
+                document.getElementById('advanced-tutorial-complete').style.display = 'flex';
             }
         });
 
@@ -261,14 +210,14 @@ export class Tutorial {
     }
 
     updateNavigationButtons() {
-        console.log('[Tutorial] Updating to step:', this.currentIndex);
+        console.log('[AdvancedTutorial] Updating to step:', this.currentIndex);
         this.prevButton.disabled = this.currentIndex === 0;
         this.nextButton.textContent = this.currentIndex === this.tutorialHands.length - 1 ? 'Finish' : 'Next';
     }
 
     showHand(index) {
         if (index < 0 || index >= this.tutorialHands.length) {
-            console.error('[Tutorial] Invalid hand index:', index);
+            console.error('[AdvancedTutorial] Invalid hand index:', index);
             return;
         }
 
@@ -285,62 +234,34 @@ export class Tutorial {
         
         // Clean up existing cards
         if (this.cards) {
-            console.log('[Tutorial] Cleaning up existing cards');
+            console.log('[AdvancedTutorial] Cleaning up existing cards');
             this.cards.forEach(card => card.cleanup());
             this.cards = [];
         }
         
         // Clear card container
         if (this.cardContainer) {
-            console.log('[Tutorial] Clearing card container');
+            console.log('[AdvancedTutorial] Clearing card container');
             this.cardContainer.innerHTML = '';
             
             // Create and display new cards
             if (currentHand.cards) {
-                console.log(`[Tutorial] Creating cards for hand: ${currentHand.name} (${currentHand.cards.join(', ')})`);
+                console.log(`[AdvancedTutorial] Creating cards for hand: ${currentHand.name} (${currentHand.cards.join(', ')})`);
                 this.cards = currentHand.cards.map((cardCode, index) => {
-                    console.log(`[Tutorial] Creating card ${index + 1}/${currentHand.cards.length}: ${cardCode}`);
+                    console.log(`[AdvancedTutorial] Creating card ${index + 1}/${currentHand.cards.length}: ${cardCode}`);
                     const card = Card.fromCode(cardCode, true);
                     card.attachToDOM(this.cardContainer);
                     return card;
                 });
-                console.log(`[Tutorial] Created ${this.cards.length} cards for ${currentHand.name}`);
             }
         }
     }
 
     cleanup() {
-        console.log('[Tutorial] Starting cleanup');
-        
-        // Clean up cards
+        console.log('[AdvancedTutorial] Cleaning up resources');
         if (this.cards) {
-            console.log('[Tutorial] Cleaning up cards');
             this.cards.forEach(card => card.cleanup());
             this.cards = [];
         }
-
-        // Clean up any remaining card instances
-        console.log('[Tutorial] Cleaning up all remaining card instances');
-        Card.cleanup();
-
-        // Clean up DOM elements
-        if (this.cardContainer) {
-            console.log('[Tutorial] Clearing card container');
-            while (this.cardContainer.firstChild) {
-                this.cardContainer.removeChild(this.cardContainer.firstChild);
-            }
-        }
-
-        // Reset state
-        this.currentIndex = 0;
-        this.gameState = {
-            isAnimating: false,
-            isTransitioning: false
-        };
-
-        console.log('[Tutorial] Cleanup complete');
     }
 }
-
-// Initialize tutorial when needed from main.js
-// Remove the auto-start behavior since main.js handles this

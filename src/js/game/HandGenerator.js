@@ -1,6 +1,13 @@
 import { Card } from './Card';
 
 export class HandGenerator {
+    constructor() {
+        this.testStats = {
+            generatedHands: {},
+            totalHands: 0
+        };
+    }
+
     static generateHand(handType) {
         switch (handType) {
             case 'royal-flush':
@@ -23,6 +30,88 @@ export class HandGenerator {
                 return this.generateOnePair();
             default:
                 return this.generateHighCard();
+        }
+    }
+
+    generateHand(complexity = 1) {
+        // Track statistics in test mode
+        if (this.testStats) {
+            this.testStats.totalHands++;
+        }
+
+        // Generate hand logic...
+        const hand = this._generateRandomHand(complexity);
+        
+        // Track hand type in test mode
+        if (this.testStats) {
+            const handType = hand.getHandRank();
+            this.testStats.generatedHands[handType] = (this.testStats.generatedHands[handType] || 0) + 1;
+        }
+
+        return hand;
+    }
+
+    getTestStats() {
+        return {
+            ...this.testStats,
+            distribution: Object.entries(this.testStats.generatedHands).map(([type, count]) => ({
+                type,
+                count,
+                percentage: ((count / this.testStats.totalHands) * 100).toFixed(2) + '%'
+            }))
+        };
+    }
+
+    _generateRandomHand(complexity) {
+        const handTypes = [
+            { type: 'royal-flush', weight: 1 },
+            { type: 'straight-flush', weight: 2 },
+            { type: 'four-kind', weight: 3 },
+            { type: 'full-house', weight: 4 },
+            { type: 'flush', weight: 5 },
+            { type: 'straight', weight: 6 },
+            { type: 'three-kind', weight: 7 },
+            { type: 'two-pair', weight: 8 },
+            { type: 'one-pair', weight: 9 },
+            { type: 'high-card', weight: 10 }
+        ];
+
+        // Adjust weights based on complexity
+        const adjustedHands = handTypes.map(hand => ({
+            ...hand,
+            weight: this._adjustWeight(hand.weight, complexity)
+        }));
+
+        // Calculate total weight
+        const totalWeight = adjustedHands.reduce((sum, hand) => sum + hand.weight, 0);
+
+        // Random number between 0 and total weight
+        let random = Math.random() * totalWeight;
+
+        // Select hand based on weights
+        for (const hand of adjustedHands) {
+            if (random <= hand.weight) {
+                return HandGenerator.generateHand(hand.type);
+            }
+            random -= hand.weight;
+        }
+
+        // Fallback to high card
+        return HandGenerator.generateHand('high-card');
+    }
+
+    _adjustWeight(baseWeight, complexity) {
+        switch (complexity) {
+            case 1: // Easy - Basic hands more common
+                return baseWeight * (11 - baseWeight);
+            case 2: // Medium - More varied
+                return baseWeight;
+            case 3: // Hard - Complex hands more common
+                return baseWeight * baseWeight;
+            case 4: // Gauntlet - All hands equally likely
+                return 1;
+            default:
+                return baseWeight;
         }
     }
 

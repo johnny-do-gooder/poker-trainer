@@ -8,16 +8,27 @@ export class Card {
         this.suit = suit;
         this.element = null;
         this._faceUp = faceUp;
-        this.createdAt = new Date();
+        this.createdAt = new Date().toISOString();
         this.flips = [];
+        this.hasElement = false;
+        this.elementClasses = [];
+        this.elementInDOM = false;
+        this.parentNodeType = null;
         Card.instances.add(this);
-        this.debug(`Created card [${this.id}]: ${rank}${this.getSuitSymbol()}, face ${this._faceUp ? 'up' : 'down'}`);
-        this.debug(`Card state: ${JSON.stringify(this.getState())}`);
+        
+        // Only log in debug mode
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[Card ${this.id}] Created card [${this.id}]: ${rank}${this.getSuitSymbol()}, face ${this._faceUp ? 'up' : 'down'}`);
+        }
     }
 
-    debug(message) {
+    debug(message, state = false) {
         if (Card.DEBUG) {
-            console.log(`[Card ${this.id}] ${message}`);
+            if (state) {
+                console.log(`[Card ${this.id}] ${message}`, this.getState());
+            } else {
+                console.log(`[Card ${this.id}] ${message}`);
+            }
         }
     }
 
@@ -28,14 +39,21 @@ export class Card {
             rank: this.rank,
             suit: this.suit,
             faceUp: this._faceUp,
-            hasElement: !!this.element,
-            elementClasses: this.element ? Array.from(this.element.classList) : [],
+            hasElement: this.hasElement,
+            elementClasses: this.elementClasses,
             flips: this.flips,
             createdAt: this.createdAt,
             elementInDOM: elementInDOM,
             parentNodeType: elementInDOM ? this.element.parentNode.nodeName : null
         };
         return state;
+    }
+
+    updateState() {
+        // Only log in debug mode
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[Card ${this.id}] Card state:`, this.getState());
+        }
     }
 
     get faceUp() {
@@ -52,44 +70,20 @@ export class Card {
     }
 
     createElement() {
-        this.debug(`Creating element, current state: ${JSON.stringify(this.getState())}`);
+        if (this.hasElement) return;
+
+        const element = document.createElement('div');
+        element.classList.add('card');
         
-        if (this.element) {
-            this.debug(`Element already exists, returning existing element`);
-            return this.element;
+        if (this.faceUp) {
+            element.classList.add('flipped');
         }
-
-        this.element = document.createElement('div');
-        this.element.className = 'card';
-        this.element.dataset.cardId = this.id;
         
-        const inner = document.createElement('div');
-        inner.className = 'card-inner';
+        this.element = element;
+        this.hasElement = true;
+        this.elementClasses = ['card'];
         
-        const front = document.createElement('div');
-        front.className = 'card-front';
-        front.innerHTML = `
-            <div class="card-value ${this.getSuitColor()}">
-                <span class="rank">${this.rank}</span>
-                <span class="suit">${this.getSuitSymbol()}</span>
-            </div>
-        `;
-        
-        const back = document.createElement('div');
-        back.className = 'card-back';
-        
-        inner.appendChild(front);
-        inner.appendChild(back);
-        this.element.appendChild(inner);
-
-        // Add flipped class if card should be face up
-        if (this._faceUp) {
-            this.debug(`Card is face up, adding flipped class`);
-            this.element.classList.add('flipped');
-        }
-
-        this.debug(`Element created with classes: ${Array.from(this.element.classList).join(',')}`);
-        return this.element;
+        this.debug('Element created with classes:', false);
     }
 
     attachToDOM(parentElement) {
@@ -98,7 +92,7 @@ export class Card {
         }
         if (parentElement && !this.element.parentNode) {
             parentElement.appendChild(this.element);
-            this.debug(`Attached card element to DOM. New state: ${JSON.stringify(this.getState())}`);
+            this.updateState();
         }
     }
 
@@ -135,7 +129,7 @@ export class Card {
         this.debug(`Flip called`);
         this.debug(`Before flip: ${JSON.stringify(this.getState())}`);
         this.setFaceUp(!this._faceUp);
-        this.debug(`After flip: ${JSON.stringify(this.getState())}`);
+        this.updateState();
     }
 
     getSuitSymbol() {
@@ -179,35 +173,17 @@ export class Card {
     }
 
     cleanup() {
-        this.debug(`Cleaning up card, current state: ${JSON.stringify(this.getState())}`);
-        
-        if (this.element) {
-            try {
-                // Remove all event listeners
-                const clone = this.element.cloneNode(true);
-                if (this.element.parentNode) {
-                    this.element.parentNode.replaceChild(clone, this.element);
-                }
-                
-                // Remove from DOM if still attached
-                if (clone.parentNode) {
-                    clone.parentNode.removeChild(clone);
-                }
-                
-                this.element = null;
-                this.debug(`Card cleaned up successfully, new state: ${JSON.stringify(this.getState())}`);
-            } catch (error) {
-                this.debug(`Error during cleanup: ${error.message}`);
-                console.error('Error in cleanup:', error);
-                // Attempt basic cleanup as fallback
-                if (this.element && this.element.parentNode) {
-                    this.element.parentNode.removeChild(this.element);
-                }
-                this.element = null;
-            }
-        } else {
-            this.debug('No element to clean up');
+        if (this.element && this.element.parentNode) {
+            this.element.parentNode.removeChild(this.element);
         }
+        
+        this.element = null;
+        this.hasElement = false;
+        this.elementClasses = [];
+        this.elementInDOM = false;
+        this.parentNodeType = null;
+        
+        this.debug('Card cleaned up', false);
     }
 
     static cleanup() {
@@ -232,7 +208,10 @@ export class Card {
         }
         
         const card = new Card(rank, suit, faceUp);
-        card.debug(`Created card from code: ${code}, face ${faceUp ? 'up' : 'down'}`);
+        // Only log in debug mode
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[Card ${card.id}] Created card from code: ${code}, face ${faceUp ? 'up' : 'down'}`);
+        }
         return card;
     }
 }

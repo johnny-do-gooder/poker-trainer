@@ -1,9 +1,9 @@
-import { Deck } from './Deck';
-import { PokerHand } from './PokerHand';
-import { HandGenerator } from './HandGenerator';
-import { GAME_MODES, MODE_SETTINGS, MODE_DURATIONS, HAND_COMPLEXITY, HAND_RANKINGS } from '../utils/Constants';
+import { Deck } from './Deck.js';
+import { PokerHand } from './PokerHand.js';
+import { HandGenerator } from './HandGenerator.js';
+import { GAME_MODES, MODE_SETTINGS, MODE_DURATIONS, HAND_COMPLEXITY, HAND_RANKINGS } from '../utils/Constants.js';
 import { Howl } from 'howler';
-import { Card } from './Card';
+import { Card } from './Card.js';
 
 export class Game {
     constructor(container, mode = GAME_MODES.EASY) {
@@ -15,6 +15,7 @@ export class Game {
         
         this.container = container;
         this.deck = new Deck();
+        this.isTestMode = true; // Enable test mode
         
         // Normalize mode to lowercase and validate
         this.mode = mode?.toLowerCase();
@@ -25,6 +26,12 @@ export class Game {
             this.mode = GAME_MODES.EASY;
             this.settings = MODE_SETTINGS[this.mode];
         }
+        
+        console.log('[Game] Mode settings:', {
+            mode: this.mode,
+            settings: this.settings,
+            timeLimit: this.settings.timeLimit
+        });
         
         this.score = {
             correct: 0,
@@ -40,6 +47,7 @@ export class Game {
         this.isGameActive = false;
         this.sounds = {};
         this.soundsInitialized = false;
+        this.countdownInterval = null;
         
         this.initializeSounds();
         this.setupEventListeners();
@@ -49,14 +57,42 @@ export class Game {
 
     initializeSounds() {
         try {
+            // Create empty sound objects initially
             this.sounds = {
-                cardDeal: new Howl({ src: ['/src/assets/sounds/card-deal.mp3'] }),
-                cardFlip: new Howl({ src: ['/src/assets/sounds/card-flip.mp3'] }),
-                correct: new Howl({ src: ['/src/assets/sounds/correct.mp3'] }),
-                wrong: new Howl({ src: ['/src/assets/sounds/wrong.mp3'] }),
-                gameStart: new Howl({ src: ['/src/assets/sounds/game-start.mp3'] }),
-                gameOver: new Howl({ src: ['/src/assets/sounds/game-over.mp3'] })
+                cardDeal: null,
+                cardFlip: null,
+                correct: null,
+                wrong: null,
+                gameStart: null,
+                gameOver: null
             };
+            
+            // Initialize sounds only on first user interaction
+            const initSound = () => {
+                if (!this.soundsInitialized) {
+                    // Create Howl instances only after user interaction
+                    this.sounds = {
+                        cardDeal: new Howl({ src: ['/src/assets/sounds/card-deal.mp3'], html5: true }),
+                        cardFlip: new Howl({ src: ['/src/assets/sounds/card-flip.mp3'], html5: true }),
+                        correct: new Howl({ src: ['/src/assets/sounds/correct.mp3'], html5: true }),
+                        wrong: new Howl({ src: ['/src/assets/sounds/wrong.mp3'], html5: true }),
+                        gameStart: new Howl({ src: ['/src/assets/sounds/game-start.mp3'], html5: true }),
+                        gameOver: new Howl({ src: ['/src/assets/sounds/game-over.mp3'], html5: true })
+                    };
+                    this.soundsInitialized = true;
+                    
+                    // Play game start sound to confirm audio is working
+                    this.sounds.gameStart.play();
+                    
+                    // Remove event listeners
+                    document.removeEventListener('click', initSound);
+                    document.removeEventListener('keydown', initSound);
+                }
+            };
+            
+            // Add event listeners for user interaction
+            document.addEventListener('click', initSound);
+            document.addEventListener('keydown', initSound);
         } catch (error) {
             console.error('[Game] Error initializing sounds:', error);
             this.sounds = {};
@@ -64,7 +100,13 @@ export class Game {
     }
 
     setupEventListeners() {
-        const buttons = document.querySelectorAll('.hand-button');
+        this.handButtons = document.getElementById('hand-buttons');
+        if (!this.handButtons) {
+            console.error('[Game] Hand buttons element not found');
+            return;
+        }
+        
+        const buttons = this.handButtons.querySelectorAll('.hand-button');
         
         buttons.forEach(button => {
             const handlerFunction = () => {
@@ -77,41 +119,39 @@ export class Game {
             button.gameHandlerFunction = handlerFunction;
             button.addEventListener('click', handlerFunction);
         });
+        
+        // Make buttons visible
+        this.handButtons.style.display = 'flex';
     }
 
     async startGame() {
-        console.log('[Game] Starting game with mode:', this.mode);
+        console.log('[Game] Starting game with settings:', {
+            mode: this.mode,
+            timeLimit: this.timeLimit,
+            handTimed: this.settings.handTimed,
+            handComplexity: this.settings.handComplexity
+        });
+        
+        // Reset game state
+        this.isGameActive = true;
+        this.gameOver = false;
         this.score = {
             correct: 0,
             incorrect: 0,
             percentage: 0
         };
-        this.timeRemaining = this.timeLimit;
-        this.gameOver = false;
-        this.isGameActive = true;
         
-        try {
-            this.sounds.gameStart?.play();
-        } catch (error) {
-            console.error('[Game] Error playing game start sound:', error);
-        }
+        // Initialize UI elements
+        this.setupEventListeners();
         
-        // Start the session timer for timed modes
-        if (!this.settings.handTimed && this.timeLimit !== Infinity) {
-            this.timer = setInterval(() => {
-                this.timeRemaining--;
-                this.updateTimer();
-                if (this.timeRemaining <= 0) {
-                    this.endGame();
-                }
-            }, 1000);
-        }
+        // Start game timer
+        this.startTimer();
         
-        // Deal the first hand
-        await this.dealNewHand();
+        // Generate first hand
+        await this.generateNewHand();
     }
 
-    async dealNewHand() {
+    async generateNewHand() {
         if (this.currentHand) {
             await this.currentHand.cleanup();
         }
@@ -165,58 +205,76 @@ export class Game {
     }
 
     checkAnswer(selectedRank) {
-        if (!this.isGameActive || !this.currentHand) {
-            return;
-        }
-        
-        const isCorrect = selectedRank === this.currentHand.rank;
-        
-        // Play sound effect
-        try {
-            if (isCorrect) {
-                this.sounds.correct?.play();
-                this.currentHand.cards.forEach(card => card.animateCorrect());
-            } else {
-                this.sounds.wrong?.play();
-                this.currentHand.cards.forEach(card => card.animateIncorrect());
-            }
-        } catch (error) {
-            console.error('[Game] Error playing sound:', error);
-        }
+        if (!this.currentHand || !this.isGameActive) return;
 
+        const isCorrect = this.currentHand.checkAnswer(selectedRank);
+        
+        // Log answer for testing
+        console.log('[Game] Answer checked:', {
+            mode: this.mode,
+            isCorrect,
+            timeRemaining: this.timeRemaining,
+            score: {
+                correct: this.score.correct,
+                incorrect: this.score.incorrect
+            }
+        });
+        
+        // Update score
         if (isCorrect) {
             this.score.correct++;
-            if (this.sounds.correct) {
-                this.sounds.correct.play();
-            }
+            this.playSound('correct');
         } else {
             this.score.incorrect++;
-            if (this.sounds.wrong) {
-                this.sounds.wrong.play();
-            }
+            this.playSound('wrong');
         }
-        
-        const total = this.score.correct + this.score.incorrect;
-        this.score.percentage = total > 0 ? Math.round((this.score.correct / total) * 100) : 0;
         
         this.updateScore();
-
-        // For easy mode, decrease time per hand
-        if (this.settings.handTimed) {
-            this.timeRemaining--;
-            this.updateTimer();
-            if (this.timeRemaining <= 0) {
-                this.endGame();
-                return;
-            }
-        }
 
         // Deal next hand after a short delay to show the result
         setTimeout(() => {
             if (!this.gameOver) {
-                this.dealNewHand();
+                this.generateNewHand();
             }
         }, 1000);
+    }
+
+    startTimer() {
+        if (this.mode === GAME_MODES.GAUNTLET) {
+            // Hide timer in gauntlet mode
+            const timerElement = document.getElementById('timer');
+            if (timerElement) {
+                timerElement.parentElement.style.display = 'none';
+            }
+            return;
+        }
+
+        // Initialize timer display
+        const timerElement = document.getElementById('timer');
+        if (timerElement) {
+            timerElement.parentElement.style.display = 'flex';
+            timerElement.textContent = this._formatTime(this.timeLimit);
+        }
+
+        // Start countdown
+        this.timeRemaining = this.timeLimit;
+        this.timer = setInterval(() => {
+            if (this.timeRemaining > 0) {
+                this.timeRemaining--;
+                if (timerElement) {
+                    timerElement.textContent = this._formatTime(this.timeRemaining);
+                }
+                if (this.timeRemaining === 0) {
+                    this.endGame();
+                }
+            }
+        }, 1000);
+    }
+
+    _formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
 
     updateTimer() {
@@ -231,23 +289,39 @@ export class Game {
             return;
         }
         
+        // Show timer for all other modes
+        timerElement.parentElement.style.display = 'flex';
         const minutes = Math.floor(this.timeRemaining / 60);
         const seconds = this.timeRemaining % 60;
-        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        timerElement.textContent = timeString;
         
-        if (this.timeRemaining <= 0) {
-            console.log('[Game] Timer expired - Game state before ending:', {
-                active: this.isGameActive,
-                score: this.score,
+        // Log every 5 seconds for testing
+        if (this.timeRemaining % 5 === 0) {
+            console.log('[Game] Timer update:', {
                 mode: this.mode,
-                timeLeft: this.timeRemaining
+                timeRemaining: this.timeRemaining,
+                display: timeString
             });
-            clearInterval(this.timer);
-            this.timer = null;
-            this.endGame();
-        } else if (this.timeRemaining <= 10) {
-            console.log('[Game] Timer low warning:', this.timeRemaining);
         }
+    }
+
+    _updateTimerDisplay() {
+        const timerElement = document.getElementById('timer');
+        if (!timerElement) return;
+        
+        // Hide timer in Gauntlet mode
+        if (this.mode === GAME_MODES.GAUNTLET) {
+            timerElement.parentElement.style.display = 'none';
+            return;
+        }
+        
+        // Show timer for all other modes
+        timerElement.parentElement.style.display = 'flex';
+        const minutes = Math.floor(this.timeRemaining / 60);
+        const seconds = this.timeRemaining % 60;
+        const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        timerElement.textContent = timeString;
     }
 
     updateScore() {
@@ -269,131 +343,130 @@ export class Game {
     }
 
     endGame() {
-        console.log('[Game] Ending game due to:', this.timeRemaining <= 0 ? 'timer expiration' : 'other reason');
-        console.log('[Game] Final game state:', {
-            active: this.isGameActive,
-            score: this.score,
-            mode: this.mode,
-            timeLeft: this.timeRemaining,
-            timer: this.timer ? 'active' : 'inactive'
-        });
-        
-        this.isGameActive = false;
+        console.log('[Game] Game over');
         this.gameOver = true;
+        this.isGameActive = false;
         
-        // Clear any active timers
+        // Stop timer
         if (this.timer) {
-            console.log('[Game] Clearing final timer instance');
             clearInterval(this.timer);
             this.timer = null;
         }
         
-        // Calculate final stats
-        const totalAnswers = this.score.correct + this.score.incorrect;
-        this.score.percentage = totalAnswers > 0 ? Math.round((this.score.correct / totalAnswers) * 100) : 0;
-        
-        // Clean up current hand if it exists
+        // Clean up current hand
         if (this.currentHand) {
-            console.log('[Game] Cleaning up final hand');
             this.currentHand.cleanup();
             this.currentHand = null;
         }
         
-        // Clear game container
-        console.log('[Game] Clearing game container in endGame');
-        while (this.container.firstChild) {
-            this.container.removeChild(this.container.firstChild);
+        // Hide game elements
+        if (this.handButtons) {
+            this.handButtons.style.display = 'none';
         }
-        
-        // Show game over screen with mode-specific information
-        const gameOver = document.getElementById('game-over');
-        const gameOverContent = gameOver.querySelector('.game-over-content');
-        
-        // Update game over title based on mode
-        const gameOverTitle = gameOverContent.querySelector('h2');
-        if (this.mode === GAME_MODES.GAUNTLET) {
-            gameOverTitle.textContent = 'Gauntlet Complete!';
-        } else if (this.timeRemaining <= 0) {
-            gameOverTitle.textContent = 'Time\'s Up!';
-        } else {
-            gameOverTitle.textContent = 'Game Over!';
-        }
-        
-        // Update stats display
-        document.getElementById('final-score').textContent = `${this.score.percentage}%`;
-        document.getElementById('correct-answers').textContent = this.score.correct;
-        document.getElementById('incorrect-answers').textContent = this.score.incorrect;
-        
-        // Add mode-specific stats
-        const finalStats = gameOverContent.querySelector('.final-stats');
-        
-        // Remove any previous mode-specific stats
-        const oldModeStats = finalStats.querySelector('.mode-stats');
-        if (oldModeStats) {
-            oldModeStats.remove();
-        }
-        
-        // Add new mode-specific stats
-        const modeStats = document.createElement('div');
-        modeStats.className = 'mode-stats';
-        
-        if (this.mode !== GAME_MODES.GAUNTLET) {
-            const timeUsed = this.settings.timeLimit / 1000 - this.timeRemaining;
-            const minutes = Math.floor(timeUsed / 60);
-            const seconds = Math.floor(timeUsed % 60);
-            modeStats.innerHTML = `
-                <p>Mode: ${this.mode.toUpperCase()}</p>
-                <p>Time Used: ${minutes}:${seconds.toString().padStart(2, '0')}</p>
-                <p>Points: ${this.score.correct * this.settings.points.correct + this.score.incorrect * this.settings.points.incorrect}</p>
-            `;
-        } else {
-            modeStats.innerHTML = `
-                <p>Mode: GAUNTLET</p>
-                <p>Total Hands: ${totalAnswers}</p>
-                <p>Points: ${this.score.correct * this.settings.points.correct + this.score.incorrect * this.settings.points.incorrect}</p>
-            `;
-        }
-        
-        finalStats.appendChild(modeStats);
         
         // Show game over screen
-        gameOver.style.display = 'flex';
-        gameOver.classList.remove('hidden');
+        const gameOverScreen = document.getElementById('game-over');
+        if (gameOverScreen) {
+            // Update final stats
+            const finalScoreElement = document.getElementById('final-score');
+            if (finalScoreElement) {
+                finalScoreElement.textContent = `${this.score.percentage}%`;
+            }
+            
+            // Show screen
+            gameOverScreen.style.display = 'flex';
+        }
         
-        try {
-            this.sounds.gameOver?.play();
-        } catch (error) {
-            console.error('[Game] Error playing game over sound:', error);
+        // Play game over sound
+        if (this.sounds.gameOver && this.soundsInitialized) {
+            this.sounds.gameOver.play();
         }
     }
 
+    initializeMode(mode) {
+        console.log('[Game] Initializing mode:', {
+            mode: mode,
+            settings: this.settings[mode]
+        });
+
+        this.mode = mode;
+        this.settings = {
+            ...this.settings[mode],
+            timeLimit: mode === GAME_MODES.GAUNTLET ? 0 : this.settings[mode].timeLimit,
+            points: this.settings[mode].points
+        };
+
+        // Reset game state
+        this.isGameActive = true;
+        this.gameOver = false;
+        this.score = { correct: 0, incorrect: 0, percentage: 0 };
+        this.timeRemaining = this.settings.timeLimit / 1000;
+
+        // Hide any previous game over screen
+        const gameOver = document.getElementById('game-over');
+        if (gameOver) {
+            gameOver.style.display = 'none';
+        }
+
+        // Start the game with countdown
+        this.startGame();
+    }
+
     cleanup() {
-        console.log('[Game] Starting cleanup');
+        console.log('[Game] Cleaning up game resources');
         
-        // First cleanup the deck which will handle all card instances it owns
-        if (this.deck) {
-            console.log('[Game] Cleaning up deck');
-            this.deck.cleanup();
-            this.deck = null;
+        // Stop timers
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
         }
-
-        // Clear the game container - this will remove card elements from DOM
-        console.log('[Game] Clearing game container');
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
+        }
+        
+        // Clean up event listeners
+        if (this.handButtons) {
+            const buttons = this.handButtons.querySelectorAll('.hand-button');
+            buttons.forEach(button => {
+                if (button.gameHandlerFunction) {
+                    button.removeEventListener('click', button.gameHandlerFunction);
+                    delete button.gameHandlerFunction;
+                }
+            });
+            this.handButtons.style.display = 'none';
+        }
+        
+        // Clean up current hand
+        if (this.currentHand) {
+            this.currentHand.cleanup();
+            this.currentHand = null;
+        }
+        
+        // Reset game state
+        this.isGameActive = false;
+        this.gameOver = false;
+        this.score = {
+            correct: 0,
+            incorrect: 0,
+            percentage: 0
+        };
+        
+        // Clear game container
         if (this.container) {
-            this.container.innerHTML = '';
+            while (this.container.firstChild) {
+                this.container.removeChild(this.container.firstChild);
+            }
         }
+    }
 
-        // Final safety check for any remaining card instances
-        console.log('[Game] Running final card instance cleanup');
-        Card.cleanup();
-
-        // Hide game over screen
-        console.log('[Game] Hiding game over screen');
-        const gameOverScreen = document.getElementById('game-over');
-        if (gameOverScreen) {
-            gameOverScreen.style.display = 'none';
+    playSound(soundName) {
+        try {
+            if (this.sounds[soundName] && this.soundsInitialized) {
+                this.sounds[soundName].play();
+            }
+        } catch (error) {
+            console.warn('[Game] Error playing sound:', soundName, error);
         }
-
-        console.log('[Game] Cleanup complete');
     }
 }
