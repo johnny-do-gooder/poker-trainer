@@ -46,12 +46,6 @@ export class Tutorial {
         this.progress = document.querySelector('.progress');
         this.returnToMenuButton = document.getElementById('return-to-menu');
 
-        // Add return to menu handler
-        this.returnToMenuButton?.addEventListener('click', () => {
-            document.getElementById('tutorial-complete').style.display = 'none';
-            document.getElementById('menu').style.display = 'flex';
-        });
-
         // Validate elements exist
         if (!this.cardContainer || !this.handName || !this.handDescription || 
             !this.progress || !this.prevButton || !this.nextButton) {
@@ -146,17 +140,6 @@ export class Tutorial {
                 document.getElementById('tutorial-complete').style.display = 'flex';
             }
         });
-
-        // Return to menu handler
-        const returnToMenuButton = document.getElementById('return-to-menu');
-        if (returnToMenuButton) {
-            returnToMenuButton.addEventListener('click', () => {
-                document.getElementById('tutorial-complete').style.display = 'none';
-                document.getElementById('menu').style.display = 'flex';
-                document.getElementById('menu').classList.remove('hidden');
-                this.cleanup();
-            });
-        }
 
         // Add click handlers for cards
         this.cardContainer.addEventListener('click', (e) => {

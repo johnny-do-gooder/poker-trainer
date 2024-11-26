@@ -153,21 +153,28 @@ export class Card {
     }
 
     toString() {
-        const symbol = this.getSuitSymbol();
-        return `${this.rank}${symbol}`;
+        return `${this.rank}${this.getSuitSymbol()}`;
     }
 
     animateCorrect() {
         if (this.element) {
             this.element.classList.add('correct');
-            setTimeout(() => this.element.classList.remove('correct'), 600);
+            setTimeout(() => {
+                if (this.element) {
+                    this.element.classList.remove('correct');
+                }
+            }, 600);
         }
     }
 
     animateIncorrect() {
         if (this.element) {
             this.element.classList.add('incorrect');
-            setTimeout(() => this.element.classList.remove('incorrect'), 600);
+            setTimeout(() => {
+                if (this.element) {
+                    this.element.classList.remove('incorrect');
+                }
+            }, 600);
         }
     }
 

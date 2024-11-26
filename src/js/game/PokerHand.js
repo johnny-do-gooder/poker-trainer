@@ -107,4 +107,18 @@ export class PokerHand {
     toString() {
         return `${this.getHandName()} (${this.cards.map(card => card.toString()).join(', ')})`;
     }
+
+    async cleanup() {
+        // Clean up all cards in the hand
+        await Promise.all(this.cards.map(card => {
+            try {
+                card.cleanup();
+            } catch (error) {
+                console.error('[PokerHand] Error cleaning up card:', error);
+            }
+        }));
+        
+        // Clear the cards array
+        this.cards = [];
+    }
 }

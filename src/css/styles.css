@@ -226,6 +226,31 @@ body {
 }
 
 /* Card animations */
+@keyframes correct {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); background-color: rgba(46, 204, 113, 0.2); }
+}
+
+@keyframes incorrect {
+    0%, 100% { transform: scale(1); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); background-color: rgba(231, 76, 60, 0.2); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); background-color: rgba(231, 76, 60, 0.2); }
+}
+
+.card.correct {
+    animation: correct 0.6s ease-in-out;
+}
+
+.card.incorrect {
+    animation: incorrect 0.6s ease-in-out;
+}
+
+/* Ensure animations don't interfere with card flipping */
+.card.correct .card-inner,
+.card.incorrect .card-inner {
+    transition: none;
+}
+
 @keyframes correctAnimation {
     0% {
         transform: scale(1) rotateY(0);
@@ -542,33 +567,49 @@ body {
 }
 
 .game-over-content {
-    background-color: rgba(255, 255, 255, 0.95);
+    background: rgba(0, 0, 0, 0.9);
     padding: 2rem;
     border-radius: 10px;
     text-align: center;
     max-width: 500px;
-    margin: 0 auto;
+    width: 90%;
 }
 
 .game-over-content h2 {
-    color: #2c3e50;
+    color: #fff;
+    font-size: 2.5rem;
     margin-bottom: 1.5rem;
 }
 
 .final-stats {
-    margin-bottom: 2rem;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
 }
 
 .final-stats p {
-    margin: 0.5rem 0;
+    color: #fff;
     font-size: 1.2rem;
-    color: #34495e;
+    margin: 0.5rem 0;
+}
+
+.mode-stats {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mode-stats p {
+    color: #aaa;
+    font-size: 1rem;
+    margin: 0.3rem 0;
 }
 
 #final-score {
+    color: #4CAF50;
     font-size: 1.5rem;
     font-weight: bold;
-    color: #27ae60;
 }
 
 #correct-answers {
@@ -657,4 +698,21 @@ body {
 h1, h2 {
     margin: 0 0 20px 0;
     color: white;
+}
+
+/* Animation speeds for different modes */
+.animation-speed-easy .card-inner {
+    transition: transform 0.3s ease-in-out;
+}
+
+.animation-speed-medium .card-inner {
+    transition: transform 0.25s ease-in-out;
+}
+
+.animation-speed-hard .card-inner {
+    transition: transform 0.2s ease-in-out;
+}
+
+.animation-speed-gauntlet .card-inner {
+    transition: transform 0.15s ease-in-out;
 }

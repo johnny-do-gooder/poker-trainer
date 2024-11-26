@@ -12,6 +12,51 @@ export const MODE_DURATIONS = {
     [GAME_MODES.GAUNTLET]: Infinity // Endless
 };
 
+export const MODE_SETTINGS = {
+    [GAME_MODES.EASY]: {
+        handComplexity: 1, // Basic hands more common
+        handTimed: true, // Each hand costs 1 second
+        timeLimit: 60000, // 1 minute
+        points: {
+            correct: 100,
+            incorrect: -50
+        }
+    },
+    [GAME_MODES.MEDIUM]: {
+        handComplexity: 2, // More varied hands
+        handTimed: false, // Session timed
+        timeLimit: 150000, // 2.5 minutes
+        points: {
+            correct: 200,
+            incorrect: -100
+        }
+    },
+    [GAME_MODES.HARD]: {
+        handComplexity: 3, // Complex hands more common
+        handTimed: false, // Session timed
+        timeLimit: 300000, // 5 minutes
+        points: {
+            correct: 300,
+            incorrect: -150
+        }
+    },
+    [GAME_MODES.GAUNTLET]: {
+        handComplexity: 4, // All hands equally likely
+        handTimed: false, // Endless mode
+        timeLimit: Infinity, // No time limit
+        points: {
+            correct: 500,
+            incorrect: -250
+        }
+    }
+};
+
+export const HAND_COMPLEXITY = {
+    BASIC: ['one-pair', 'two-pair', 'three-kind'],
+    INTERMEDIATE: ['straight', 'flush', 'full-house'],
+    ADVANCED: ['four-kind', 'straight-flush', 'royal-flush']
+};
+
 export const HAND_RANKINGS = {
     'royal-flush': { name: 'Royal Flush', points: 800 },
     'straight-flush': { name: 'Straight Flush', points: 50 },
@@ -27,12 +72,6 @@ export const HAND_RANKINGS = {
 
 export const CARD_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 export const CARD_SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
-
-export const ANIMATION_DURATION = {
-    CARD_DEAL: 0.5,
-    CARD_FLIP: 0.3,
-    MENU_TRANSITION: 0.4
-};
 
 export const SOUND_EFFECTS = {
     CARD_DEAL: 'card-deal.mp3',

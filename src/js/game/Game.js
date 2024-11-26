@@ -1,12 +1,13 @@
 import { Deck } from './Deck';
 import { PokerHand } from './PokerHand';
-import { GAME_MODES, MODE_DURATIONS, HAND_RANKINGS } from '../utils/Constants';
+import { HandGenerator } from './HandGenerator';
+import { GAME_MODES, MODE_SETTINGS, MODE_DURATIONS, HAND_COMPLEXITY, HAND_RANKINGS } from '../utils/Constants';
 import { Howl } from 'howler';
 import { Card } from './Card';
 
 export class Game {
-    constructor(container) {
-        console.log('[Game] Initializing Game class');
+    constructor(container, mode = GAME_MODES.EASY) {
+        console.log('[Game] Initializing Game class with mode:', mode);
         if (!container) {
             console.error('No container provided to Game constructor');
             return;
@@ -14,46 +15,51 @@ export class Game {
         
         this.container = container;
         this.deck = new Deck();
-        this.currentHand = null;
+        
+        // Normalize mode to lowercase and validate
+        this.mode = mode?.toLowerCase();
+        this.settings = MODE_SETTINGS[this.mode];
+        
+        if (!this.settings) {
+            console.warn(`[Game] Invalid mode: ${mode}, falling back to EASY mode`);
+            this.mode = GAME_MODES.EASY;
+            this.settings = MODE_SETTINGS[this.mode];
+        }
+        
         this.score = {
             correct: 0,
             incorrect: 0,
             percentage: 0
         };
-        this.timeLeft = 0;
-        this.gameMode = null;
+        
+        this.timeLimit = Math.floor(this.settings.timeLimit / 1000); // Convert milliseconds to seconds
+        this.timeRemaining = this.timeLimit;
+        this.gameOver = false;
+        this.currentHand = null;
         this.timer = null;
         this.isGameActive = false;
         this.sounds = {};
         this.soundsInitialized = false;
         
+        this.initializeSounds();
         this.setupEventListeners();
         
-        console.log('[Game] Game class initialized');
+        console.log('[Game] Initialized with mode:', this.mode, 'settings:', this.settings);
     }
 
-    async initializeSounds() {
-        if (this.soundsInitialized) {
-            return;
-        }
-        
+    initializeSounds() {
         try {
             this.sounds = {
-                cardFlip: new Howl({ src: ['/src/assets/sounds/card-flip.mp3'], volume: 0.5 }),
-                correct: new Howl({ src: ['/src/assets/sounds/correct.mp3'], volume: 0.5 }),
-                incorrect: new Howl({ src: ['/src/assets/sounds/incorrect.mp3'], volume: 0.5 })
+                cardDeal: new Howl({ src: ['/src/assets/sounds/card-deal.mp3'] }),
+                cardFlip: new Howl({ src: ['/src/assets/sounds/card-flip.mp3'] }),
+                correct: new Howl({ src: ['/src/assets/sounds/correct.mp3'] }),
+                wrong: new Howl({ src: ['/src/assets/sounds/wrong.mp3'] }),
+                gameStart: new Howl({ src: ['/src/assets/sounds/game-start.mp3'] }),
+                gameOver: new Howl({ src: ['/src/assets/sounds/game-over.mp3'] })
             };
-
-            await Promise.all([
-                new Promise((resolve) => this.sounds.cardFlip.once('load', resolve)),
-                new Promise((resolve) => this.sounds.correct.once('load', resolve)),
-                new Promise((resolve) => this.sounds.incorrect.once('load', resolve))
-            ]);
-
-            this.soundsInitialized = true;
         } catch (error) {
-            console.error('Error initializing sounds:', error);
-            this.soundsInitialized = false;
+            console.error('[Game] Error initializing sounds:', error);
+            this.sounds = {};
         }
     }
 
@@ -73,237 +79,77 @@ export class Game {
         });
     }
 
-    async startGame(mode) {
-        console.log('[Game] Starting game with mode:', mode);
-        
-        // Set game mode and activate game first
-        this.gameMode = mode || GAME_MODES.EASY;
-        this.timeLeft = MODE_DURATIONS[this.gameMode] || MODE_DURATIONS[GAME_MODES.EASY];
-        this.isGameActive = true;  // Set active immediately
-        
-        console.log('[Game] Game mode set to:', this.gameMode);
-        console.log('[Game] Current game state:', {
-            isActive: this.isGameActive,
-            mode: this.gameMode,
-            container: this.container.children.length
-        });
+    async startGame() {
+        console.log('[Game] Starting game with mode:', this.mode);
+        this.score = {
+            correct: 0,
+            incorrect: 0,
+            percentage: 0
+        };
+        this.timeRemaining = this.timeLimit;
+        this.gameOver = false;
+        this.isGameActive = true;
         
         try {
-            if (!this.soundsInitialized) {
-                console.log('[Game] Initializing sounds...');
-                await this.initializeSounds();
-            }
-            
-            this.score = {
-                correct: 0,
-                incorrect: 0,
-                percentage: 0
-            };
-            
-            console.log('[Game] Clearing game container');
-            while (this.container.firstChild) {
-                this.container.removeChild(this.container.firstChild);
-            }
-            
-            console.log('[Game] Starting timer and dealing first hand');
-            this.startTimer();
-            await this.dealNewHand();
-            
+            this.sounds.gameStart?.play();
         } catch (error) {
-            console.error('[Game] Error starting game:', error);
-            this.isGameActive = false;
+            console.error('[Game] Error playing game start sound:', error);
         }
-    }
-
-    generateEasyModeHand() {
-        const handTypes = [
-            this.generateRoyalFlush.bind(this),
-            this.generateStraightFlush.bind(this),
-            this.generateFourOfAKind.bind(this),
-            this.generateFullHouse.bind(this),
-            this.generateFlush.bind(this),
-            this.generateStraight.bind(this),
-            this.generateThreeOfAKind.bind(this),
-            this.generateTwoPair.bind(this),
-            this.generateOnePair.bind(this),
-            this.generateHighCard.bind(this)
-        ];
         
-        const generator = handTypes[Math.floor(Math.random() * handTypes.length)];
-        return generator();
-    }
-
-    generateHighCard() {
-        const ranks = ['A', 'K', 'Q', 'J', '9'];
-        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-        return ranks.map(rank => {
-            const suit = suits[Math.floor(Math.random() * suits.length)];
-            return new Card(rank, suit);
-        });
-    }
-
-    generateOnePair() {
-        const pairRank = ['K', 'Q', 'J'][Math.floor(Math.random() * 3)];
-        const otherRanks = ['A', 'K', 'Q', 'J'].filter(r => r !== pairRank).slice(0, 3);
-        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+        // Start the session timer for timed modes
+        if (!this.settings.handTimed && this.timeLimit !== Infinity) {
+            this.timer = setInterval(() => {
+                this.timeRemaining--;
+                this.updateTimer();
+                if (this.timeRemaining <= 0) {
+                    this.endGame();
+                }
+            }, 1000);
+        }
         
-        const pairSuits = suits.slice().sort(() => Math.random() - 0.5).slice(0, 2);
-        const cards = [
-            new Card(pairRank, pairSuits[0]),
-            new Card(pairRank, pairSuits[1])
-        ];
-
-        otherRanks.forEach(rank => {
-            const suit = suits[Math.floor(Math.random() * suits.length)];
-            cards.push(new Card(rank, suit));
-        });
-
-        return cards;
+        // Deal the first hand
+        await this.dealNewHand();
     }
 
-    generateTwoPair() {
-        const [pair1Rank, pair2Rank] = ['A', 'K', 'Q'].slice(0, 2);
-        const lastRank = ['A', 'K', 'Q'].find(r => r !== pair1Rank && r !== pair2Rank);
-        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-        
-        const pair1Suits = suits.slice().sort(() => Math.random() - 0.5).slice(0, 2);
-        const cards = [
-            new Card(pair1Rank, pair1Suits[0]),
-            new Card(pair1Rank, pair1Suits[1])
-        ];
-
-        const pair2Suits = suits.slice().sort(() => Math.random() - 0.5).slice(0, 2);
-        cards.push(new Card(pair2Rank, pair2Suits[0]));
-        cards.push(new Card(pair2Rank, pair2Suits[1]));
-
-        const suit = suits[Math.floor(Math.random() * suits.length)];
-        cards.push(new Card(lastRank, suit));
-
-        return cards;
-    }
-
-    generateThreeOfAKind() {
-        const tripRank = ['A', 'K', 'Q'][Math.floor(Math.random() * 3)];
-        const otherRanks = ['A', 'K', 'Q'].filter(r => r !== tripRank);
-        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-        
-        const tripSuits = suits.slice().sort(() => Math.random() - 0.5).slice(0, 3);
-        const cards = [
-            new Card(tripRank, tripSuits[0]),
-            new Card(tripRank, tripSuits[1]),
-            new Card(tripRank, tripSuits[2])
-        ];
-
-        otherRanks.forEach(rank => {
-            const suit = suits[Math.floor(Math.random() * suits.length)];
-            cards.push(new Card(rank, suit));
-        });
-
-        return cards;
-    }
-
-    generateStraight() {
-        const straightTypes = [
-            ['A', 'K', 'Q', 'J', '10'],
-            ['K', 'Q', 'J', '10', '9']
-        ];
-        const ranks = straightTypes[Math.floor(Math.random() * straightTypes.length)];
-        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-        
-        return ranks.map(rank => {
-            const suit = suits[Math.floor(Math.random() * suits.length)];
-            return new Card(rank, suit);
-        });
-    }
-
-    generateFlush() {
-        const suit = ['hearts', 'diamonds', 'clubs', 'spades'][Math.floor(Math.random() * 4)];
-        const ranks = ['A', 'K', 'Q', 'J', '9'];
-        
-        return ranks.map(rank => new Card(rank, suit));
-    }
-
-    generateRoyalFlush() {
-        const suit = ['hearts', 'diamonds', 'clubs', 'spades'][Math.floor(Math.random() * 4)];
-        const ranks = ['A', 'K', 'Q', 'J', '10'];
-        return ranks.map(rank => new Card(rank, suit));
-    }
-
-    generateStraightFlush() {
-        const suit = ['hearts', 'diamonds', 'clubs', 'spades'][Math.floor(Math.random() * 4)];
-        const ranks = ['K', 'Q', 'J', '10', '9'];
-        return ranks.map(rank => new Card(rank, suit));
-    }
-
-    generateFourOfAKind() {
-        const quadRank = ['K', 'Q', 'J'][Math.floor(Math.random() * 3)];
-        const otherRank = 'A';  
-        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-        const otherSuit = suits[Math.floor(Math.random() * suits.length)];
-        
-        return [
-            ...suits.map(suit => new Card(quadRank, suit)),
-            new Card(otherRank, otherSuit)
-        ];
-    }
-
-    generateFullHouse() {
-        const tripRank = ['K', 'Q', 'J'][Math.floor(Math.random() * 3)];
-        const pairRank = 'A';  
-        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-        
-        const tripSuits = suits.slice().sort(() => Math.random() - 0.5).slice(0, 3);
-        const cards = [
-            new Card(tripRank, tripSuits[0]),
-            new Card(tripRank, tripSuits[1]),
-            new Card(tripRank, tripSuits[2])
-        ];
-
-        const pairSuits = suits.slice().sort(() => Math.random() - 0.5).slice(0, 2);
-        cards.push(new Card(pairRank, pairSuits[0]));
-        cards.push(new Card(pairRank, pairSuits[1]));
-
-        return cards;
-    }
-
-    dealNewHand() {
-        console.log('[Game] Attempting to deal new hand. Game active:', this.isGameActive);
-        if (!this.isGameActive) return;
-
+    async dealNewHand() {
         if (this.currentHand) {
-            console.log('[Game] Cleaning up previous hand');
-            // Clean up previous cards
-            this.currentHand.cards.forEach(card => card.cleanup());
-            // Clear container
-            while (this.container.firstChild) {
-                this.container.removeChild(this.container.firstChild);
-            }
+            await this.currentHand.cleanup();
         }
 
-        const cards = this.generateEasyModeHand();
-        console.log('[Game] Generated new hand:', cards.map(c => `${c.rank}${c.getSuitSymbol()}`).join(' '));
-        
-        const rankValues = {
-            'A': 14, 'K': 13, 'Q': 12, 'J': 11,
-            '10': 10, '9': 9, '8': 8, '7': 7,
-            '6': 6, '5': 5, '4': 4, '3': 3, '2': 2
-        };
-        cards.sort((a, b) => rankValues[b.rank] - rankValues[a.rank]);
-        
+        // Select hand type based on complexity
+        let handTypes;
+        switch (this.settings.handComplexity) {
+            case 1: // Easy
+                handTypes = [...HAND_COMPLEXITY.BASIC];
+                break;
+            case 2: // Medium
+                handTypes = [...HAND_COMPLEXITY.BASIC, ...HAND_COMPLEXITY.INTERMEDIATE];
+                break;
+            case 3: // Hard
+                handTypes = [...HAND_COMPLEXITY.INTERMEDIATE, ...HAND_COMPLEXITY.ADVANCED];
+                break;
+            case 4: // Gauntlet
+                handTypes = [...HAND_COMPLEXITY.BASIC, ...HAND_COMPLEXITY.INTERMEDIATE, ...HAND_COMPLEXITY.ADVANCED];
+                break;
+            default:
+                handTypes = [...HAND_COMPLEXITY.BASIC];
+        }
+
+        const handType = handTypes[Math.floor(Math.random() * handTypes.length)];
+        const cards = HandGenerator.generateHand(handType);
         this.currentHand = new PokerHand(cards);
-        console.log('[Game] New hand type:', this.currentHand.rank);
-        
+
         const cardContainer = document.createElement('div');
         cardContainer.className = 'card-container';
         this.container.appendChild(cardContainer);
         
-        cards.forEach((card, index) => {
+        this.currentHand.cards.forEach((card, index) => {
             // Create card in the correct initial state for the game mode
             const cardElement = card.createElement();
             cardContainer.appendChild(cardElement);
             
             // In easy mode, flip cards face up after a delay
-            if (this.gameMode === 'easy') {
+            if (this.mode === GAME_MODES.EASY) {
                 setTimeout(() => {
                     try {
                         if (!this.isGameActive) return;
@@ -319,91 +165,88 @@ export class Game {
     }
 
     checkAnswer(selectedRank) {
-        if (!this.isGameActive) {
+        if (!this.isGameActive || !this.currentHand) {
             return;
         }
         
         const isCorrect = selectedRank === this.currentHand.rank;
         
-        this.currentHand.cards.forEach(card => {
-            card.element.classList.add(isCorrect ? 'correct' : 'incorrect');
-            setTimeout(() => {
-                card.element.classList.remove(isCorrect ? 'correct' : 'incorrect');
-            }, 800);
-        });
-        
-        if (this.soundsInitialized) {
+        // Play sound effect
+        try {
             if (isCorrect) {
-                this.sounds.correct.play();
+                this.sounds.correct?.play();
+                this.currentHand.cards.forEach(card => card.animateCorrect());
             } else {
-                this.sounds.incorrect.play();
+                this.sounds.wrong?.play();
+                this.currentHand.cards.forEach(card => card.animateIncorrect());
             }
+        } catch (error) {
+            console.error('[Game] Error playing sound:', error);
         }
-        
+
         if (isCorrect) {
             this.score.correct++;
+            if (this.sounds.correct) {
+                this.sounds.correct.play();
+            }
         } else {
             this.score.incorrect++;
+            if (this.sounds.wrong) {
+                this.sounds.wrong.play();
+            }
         }
         
         const total = this.score.correct + this.score.incorrect;
         this.score.percentage = total > 0 ? Math.round((this.score.correct / total) * 100) : 0;
         
         this.updateScore();
-        
-        if (this.timeLeft <= 0) {
-            this.endGame();
-        } else {
-            setTimeout(() => this.dealNewHand(), 1000);
-        }
-    }
 
-    startTimer() {
-        console.log('[Game] Starting timer with time left:', this.timeLeft);
-        
-        if (this.timer) {
-            console.log('[Game] Clearing existing timer');
-            clearInterval(this.timer);
-        }
-        
-        const timerDisplay = document.getElementById('timer');
-        if (!timerDisplay) {
-            console.error('[Game] Timer display element not found');
-            return;
-        }
-        
-        timerDisplay.textContent = this.timeLeft;
-        console.log('[Game] Timer display initialized with:', this.timeLeft);
-        
-        this.timer = setInterval(() => {
+        // For easy mode, decrease time per hand
+        if (this.settings.handTimed) {
+            this.timeRemaining--;
             this.updateTimer();
+            if (this.timeRemaining <= 0) {
+                this.endGame();
+                return;
+            }
+        }
+
+        // Deal next hand after a short delay to show the result
+        setTimeout(() => {
+            if (!this.gameOver) {
+                this.dealNewHand();
+            }
         }, 1000);
-        
-        console.log('[Game] Timer interval started');
     }
 
     updateTimer() {
-        const timerDisplay = document.getElementById('timer');
-        if (!timerDisplay) {
-            console.error('[Game] Timer display element not found in updateTimer');
+        if (!this.isGameActive) return;
+        
+        const timerElement = document.getElementById('timer');
+        if (!timerElement) return;
+        
+        // Hide timer in Gauntlet mode
+        if (this.mode === GAME_MODES.GAUNTLET) {
+            timerElement.parentElement.style.display = 'none';
             return;
         }
-
-        this.timeLeft--;
-        timerDisplay.textContent = this.timeLeft;
         
-        if (this.timeLeft <= 0) {
+        const minutes = Math.floor(this.timeRemaining / 60);
+        const seconds = this.timeRemaining % 60;
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (this.timeRemaining <= 0) {
             console.log('[Game] Timer expired - Game state before ending:', {
                 active: this.isGameActive,
                 score: this.score,
-                mode: this.gameMode,
-                timeLeft: this.timeLeft
+                mode: this.mode,
+                timeLeft: this.timeRemaining
             });
             clearInterval(this.timer);
             this.timer = null;
             this.endGame();
-        } else if (this.timeLeft <= 10) {
-            console.log('[Game] Timer low warning:', this.timeLeft);
+        } else if (this.timeRemaining <= 10) {
+            console.log('[Game] Timer low warning:', this.timeRemaining);
         }
     }
 
@@ -426,46 +269,102 @@ export class Game {
     }
 
     endGame() {
-        console.log('[Game] Ending game due to:', this.timeLeft <= 0 ? 'timer expiration' : 'other reason');
+        console.log('[Game] Ending game due to:', this.timeRemaining <= 0 ? 'timer expiration' : 'other reason');
         console.log('[Game] Final game state:', {
             active: this.isGameActive,
             score: this.score,
-            mode: this.gameMode,
-            timeLeft: this.timeLeft,
+            mode: this.mode,
+            timeLeft: this.timeRemaining,
             timer: this.timer ? 'active' : 'inactive'
         });
         
         this.isGameActive = false;
+        this.gameOver = true;
         
+        // Clear any active timers
         if (this.timer) {
             console.log('[Game] Clearing final timer instance');
             clearInterval(this.timer);
             this.timer = null;
         }
         
+        // Calculate final stats
         const totalAnswers = this.score.correct + this.score.incorrect;
-        this.score.percentage = Math.round((this.score.correct / totalAnswers) * 100);
+        this.score.percentage = totalAnswers > 0 ? Math.round((this.score.correct / totalAnswers) * 100) : 0;
         
         // Clean up current hand if it exists
         if (this.currentHand) {
             console.log('[Game] Cleaning up final hand');
-            this.currentHand.cards.forEach(card => card.cleanup());
+            this.currentHand.cleanup();
+            this.currentHand = null;
         }
         
+        // Clear game container
         console.log('[Game] Clearing game container in endGame');
         while (this.container.firstChild) {
             this.container.removeChild(this.container.firstChild);
         }
         
+        // Show game over screen with mode-specific information
         const gameOver = document.getElementById('game-over');
-        gameOver.style.display = 'flex';
-        gameOver.classList.remove('hidden');
+        const gameOverContent = gameOver.querySelector('.game-over-content');
         
+        // Update game over title based on mode
+        const gameOverTitle = gameOverContent.querySelector('h2');
+        if (this.mode === GAME_MODES.GAUNTLET) {
+            gameOverTitle.textContent = 'Gauntlet Complete!';
+        } else if (this.timeRemaining <= 0) {
+            gameOverTitle.textContent = 'Time\'s Up!';
+        } else {
+            gameOverTitle.textContent = 'Game Over!';
+        }
+        
+        // Update stats display
         document.getElementById('final-score').textContent = `${this.score.percentage}%`;
         document.getElementById('correct-answers').textContent = this.score.correct;
         document.getElementById('incorrect-answers').textContent = this.score.incorrect;
         
-        console.log('[Game] Game over screen displayed');
+        // Add mode-specific stats
+        const finalStats = gameOverContent.querySelector('.final-stats');
+        
+        // Remove any previous mode-specific stats
+        const oldModeStats = finalStats.querySelector('.mode-stats');
+        if (oldModeStats) {
+            oldModeStats.remove();
+        }
+        
+        // Add new mode-specific stats
+        const modeStats = document.createElement('div');
+        modeStats.className = 'mode-stats';
+        
+        if (this.mode !== GAME_MODES.GAUNTLET) {
+            const timeUsed = this.settings.timeLimit / 1000 - this.timeRemaining;
+            const minutes = Math.floor(timeUsed / 60);
+            const seconds = Math.floor(timeUsed % 60);
+            modeStats.innerHTML = `
+                <p>Mode: ${this.mode.toUpperCase()}</p>
+                <p>Time Used: ${minutes}:${seconds.toString().padStart(2, '0')}</p>
+                <p>Points: ${this.score.correct * this.settings.points.correct + this.score.incorrect * this.settings.points.incorrect}</p>
+            `;
+        } else {
+            modeStats.innerHTML = `
+                <p>Mode: GAUNTLET</p>
+                <p>Total Hands: ${totalAnswers}</p>
+                <p>Points: ${this.score.correct * this.settings.points.correct + this.score.incorrect * this.settings.points.incorrect}</p>
+            `;
+        }
+        
+        finalStats.appendChild(modeStats);
+        
+        // Show game over screen
+        gameOver.style.display = 'flex';
+        gameOver.classList.remove('hidden');
+        
+        try {
+            this.sounds.gameOver?.play();
+        } catch (error) {
+            console.error('[Game] Error playing game over sound:', error);
+        }
     }
 
     cleanup() {

@@ -67,35 +67,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (!currentGame) {
             console.log('[Main] Creating new game instance');
-            currentGame = new Game(gameContainer);
+            currentGame = new Game(gameContainer, mode);
         }
         console.log('[Main] Starting game');
         await currentGame.startGame(mode);
     };
     
     // Event listeners for tutorial completion
-    document.getElementById('start-playing').addEventListener('click', async (e) => {
-        // Prevent any event bubbling
+    document.getElementById('return-to-menu').addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        cleanup();
+        tutorialActive = false;  // Explicitly reset tutorial state
         
-        console.log('Starting game from tutorial completion');
-        if (tutorialActive) {
-            // Clean up tutorial state but preserve game instance
-            tutorialActive = false;
-            tutorialOverlay.style.display = 'none';
-            menuOverlay.style.display = 'none';
-            document.getElementById('tutorial-complete').style.display = 'none';
-            
-            // Show game UI
-            handButtons.style.display = 'flex';
-            
-            if (!currentGame) {
-                console.log('[Main] Creating new game instance from tutorial');
-                currentGame = new Game(gameContainer);
-            }
-            await currentGame.startGame(GAME_MODES.EASY);
-        }
+        // Show menu
+        menuOverlay.style.display = 'flex';
+        menuOverlay.classList.remove('hidden');
+        
+        // Hide tutorial overlays
+        tutorialOverlay.style.display = 'none';
+        document.getElementById('tutorial-complete').style.display = 'none';
     });
 
     // Add mode selection handlers
@@ -159,14 +150,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Add game over button handlers
     document.getElementById('play-again').addEventListener('click', async () => {
         console.log('[Main] Play Again clicked');
+        const currentMode = currentGame?.mode?.toLowerCase() || GAME_MODES.EASY;
         if (currentGame) {
             console.log('[Main] Cleaning up existing game');
             currentGame.cleanup();
-            console.log('[Main] Restarting game');
-            await currentGame.startGame(GAME_MODES.EASY);
+            console.log('[Main] Restarting game with mode:', currentMode);
+            await currentGame.startGame(currentMode);
         } else {
             console.log('[Main] No existing game, creating new instance');
-            await startGame(GAME_MODES.EASY);
+            await startGame(currentMode);
         }
     });
 
@@ -181,21 +173,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         gameOver.classList.add('hidden');
         menuOverlay.style.display = 'flex';
         menuOverlay.classList.remove('hidden');
-        
-        // Refresh the page after a short delay to ensure cleanup is complete
-        setTimeout(() => {
-            window.location.reload();
-        }, 100);
-    });
-
-    // Event listener for return to menu button
-    document.getElementById('return-to-menu').addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        cleanup();
-        tutorialActive = false;  // Explicitly reset tutorial state
-        document.getElementById('tutorial-complete').style.display = 'none';
-        menuOverlay.style.display = 'flex';
         
         // Refresh the page after a short delay to ensure cleanup is complete
         setTimeout(() => {
